@@ -31,7 +31,7 @@
             background-color: #1a1a1a;
             border: 2px solid #333;
             overflow: hidden;
-            transition: background-color 0.8s ease; /* Transición suave de color de nivel */
+            transition: background-color 0.8s ease; 
         }
         
         /* EFECTOS VISUALES Y ANIMACIONES */
@@ -221,6 +221,7 @@
             cursor: pointer;
             font-weight: bold;
             box-shadow: 0 4px 15px rgba(0,255,204,0.4);
+            pointer-events: auto; /* Asegurar que el botón reciba clics */
         }
     </style>
 </head>
@@ -306,8 +307,8 @@
             oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.06);
         } else if (tipo === 'moneda') {
             oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // LA
-            oscillator.frequency.setValueAtTime(1320, audioCtx.currentTime + 0.07); // MI
+            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
+            oscillator.frequency.setValueAtTime(1320, audioCtx.currentTime + 0.07); 
             gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
             oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.2);
@@ -365,7 +366,6 @@
         const posicionAnterior = jugador.style.left;
         jugador.style.left = posicionesCarril[carrilActual] + "%";
         
-        // Si ya tenía posición asignada y cambió, disparamos la estela
         if (posicionAnterior && posicionAnterior !== jugador.style.left) {
             crearEstela(posicionAnterior);
         }
@@ -405,7 +405,7 @@
     // --- CONTROLES MÓVILES E HÍBRIDOS ---
     function manejarEntrada(clientX) {
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        if (!juegoActActive) return;
+        if (!juegoActivo) return;
 
         const anchoPantalla = gameContainer.offsetWidth;
         const clickX = clientX - gameContainer.getBoundingClientRect().left;
@@ -418,20 +418,21 @@
         actualizarPosicionJugador();
     }
 
-    let juegoActActive = true; 
-
+    // AQUI ESTÁ LA CORRECCIÓN DEL BOTÓN
     gameContainer.addEventListener('touchstart', (e) => {
+        if (e.target.tagName === 'BUTTON') return; 
         e.preventDefault(); 
         manejarEntrada(e.touches[0].clientX);
     }, { passive: false });
 
     gameContainer.addEventListener('mousedown', (e) => {
+        if (e.target.tagName === 'BUTTON') return;
         manejarEntrada(e.clientX);
     });
 
     window.addEventListener('keydown', (e) => {
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        if (!juegoActActive) return;
+        if (!juegoActivo) return;
         if (e.key === "ArrowLeft" && carrilActual > 0) carrilActual--;
         if (e.key === "ArrowRight" && carrilActual < 2) carrilActual++;
         actualizarPosicionJugador();
@@ -439,7 +440,7 @@
 
     // --- GENERADOR RANDOM DE ELEMENTOS ---
     function crearElemento() {
-        if (!juegoActActive) return;
+        if (!juegoActivo) return;
 
         const carrilAzar = Math.floor(Math.random() * 3);
         const nuevoElem = document.createElement('div');
@@ -466,7 +467,7 @@
             carril: carrilAzar,
             tipo: tipo,
             y: -60,
-            nearMissRegistrado: false // Bandera para que el Near Miss ocurra solo una vez por bloque
+            nearMissRegistrado: false 
         };
 
         gameContainer.appendChild(nuevoElem);
@@ -480,7 +481,7 @@
 
     // --- BUCLE PRINCIPAL DEL JUEGO (FRAME POR FRAME) ---
     function juegoLoop() {
-        if (!juegoActActive) return;
+        if (!juegoActivo) return;
 
         const altoContenedor = gameContainer.offsetHeight;
         const jugadorY = altoContenedor - 50 - 55; 
@@ -489,7 +490,6 @@
         for(let i=0; i<listaLineas.length; i++) {
             let linea = listaLineas[i];
             let topActual = parseFloat(linea.style.top);
-            // Las líneas van el doble de rápido para dar sensación real de vértigo
             topActual += (velocidadObjetos * 1.8); 
             linea.style.top = topActual + "px";
             if(topActual > altoContenedor) {
@@ -505,12 +505,10 @@
 
             // MECÁNICA: DETECTAR "NEAR MISS" (CASI CHOQUE)
             if (obj.tipo === 'obstaculo' && !obj.nearMissRegistrado) {
-                // Si el bloque está pasando exactamente al lado del jugador verticalmente
                 if (obj.y + 55 >= jugadorY && obj.y <= jugadorY + 55) {
-                    // Y está en un carril contiguo (diferencia absoluta de 1 carril)
                     if (Math.abs(obj.carril - carrilActual) === 1) {
                         obj.nearMissRegistrado = true;
-                        puntos += 25; // Bonus por valiente
+                        puntos += 25; 
                         scoreText.innerText = puntos;
                         reproducirSonido('near_miss');
                         lanzarTextoFlotante('¡VALIENTE! +25', '#ff9900', jugadorY - 20);
@@ -558,11 +556,9 @@
                             multiplicadorCombo = 1;
                         }
 
-                        // Mostrar medalla de combo si corresponde
                         if(multiplicadorCombo > 1) {
                             comboBadge.innerText = `Combo x${multiplicadorCombo}`;
                             comboBadge.style.display = "inline-block";
-                            // Pequeño brinco visual en el badge
                             comboBadge.style.transform = "scale(1.2)";
                             setTimeout(() => comboBadge.style.transform = "scale(1)", 100);
                         }
@@ -598,7 +594,6 @@
                     reproducirSonido('punto');
                     revisarCambioNivel();
                 } 
-                // MECÁNICA DE COMBO ROTO: Si dejas pasar una moneda, el combo vuelve a cero
                 else if (obj.tipo === 'moneda') {
                     if (monedasConsecutivas > 0) {
                         monedasConsecutivas = 0;
@@ -623,7 +618,6 @@
             nivelActual = nuevoNivelCalculado;
             levelText.innerText = nivelActual;
             
-            // Subir velocidad y disminuir tiempo de spawn
             velocidadObjetos += 0.9;
             if (tiempoAparicion > 400) {
                 tiempoAparicion -= 100;
@@ -632,11 +626,9 @@
             
             reproducirSonido('nivel');
             
-            // Cambiar color de fondo temático de nivel
             const colorIndex = (nivelActual - 1) % coloresNiveles.length;
             gameContainer.style.backgroundColor = coloresNiveles[colorIndex];
             
-            // Destello de cambio de nivel
             flashLayer.style.backgroundColor = "rgba(255,255,255,0.8)";
             flashLayer.classList.add('flash');
             setTimeout(() => {
@@ -647,7 +639,7 @@
     }
 
     function gameOver() {
-        juegoActActive = false;
+        juegoActivo = false;
         clearInterval(bucleElementos);
         
         reproducirSonido('choque');
@@ -690,7 +682,7 @@
         gameContainer.classList.remove('shake');
         gameOverScreen.style.display = "none";
         
-        juegoActActive = true;
+        juegoActivo = true;
         iniciarGenerador();
         juegoLoop();
     }
