@@ -1,0 +1,9 @@
+{
+  "name": "Inspiración Diaria",
+  "short_name": "Inspiración",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#764ba2",
+  "theme_color": "#764ba2",
+  "description": "Tu dosis diaria de motivación."
+}

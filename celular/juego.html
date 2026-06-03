@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simon Dice - Edición Neón</title>
+    <style>
+        :root {
+            --color-verde: #00ff00;
+            --color-rojo: #ff0040;
+            --color-amarillo: #ffea00;
+            --color-azul: #00e5ff;
+            --bg-oscuro: #121212;
+            --bg-panel: #1e1e1e;
+        }
+
+        body {
+            background-color: var(--bg-oscuro);
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .estadisticas {
+            display: flex;
+            gap: 40px;
+            background: var(--bg-panel);
+            padding: 15px 30px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .estadisticas p {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .tablero {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            background: var(--bg-panel);
+            padding: 40px;
+            border-radius: 50%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            position: relative;
+        }
+
+        .boton {
+            width: 140px;
+            height: 140px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0.4;
+        }
+
+        /* Forma de los botones (cuartos de círculo) */
+        #verde { border-radius: 100% 10px 10px 10px; background-color: var(--color-verde); }
+        #rojo { border-radius: 10px 100% 10px 10px; background-color: var(--color-rojo); }
+        #amarillo { border-radius: 10px 10px 10px 100%; background-color: var(--color-amarillo); }
+        #azul { border-radius: 10px 10px 100% 10px; background-color: var(--color-azul); }
+
+        /* Efecto de iluminación (Neón) */
+        .boton.active {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+        #verde.active { box-shadow: 0 0 40px var(--color-verde), inset 0 0 20px white; }
+        #rojo.active { box-shadow: 0 0 40px var(--color-rojo), inset 0 0 20px white; }
+        #amarillo.active { box-shadow: 0 0 40px var(--color-amarillo), inset 0 0 20px white; }
+        #azul.active { box-shadow: 0 0 40px var(--color-azul), inset 0 0 20px white; }
+
+        /* Pantalla de Inicio / Fin de juego */
+        .pantalla-modal {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .pantalla-modal h2 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: var(--color-azul);
+            text-shadow: 0 0 20px var(--color-azul);
+        }
+
+        .pantalla-modal input {
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            border-radius: 30px;
+            border: 2px solid var(--color-azul);
+            background: transparent;
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            outline: none;
+            width: 250px;
+        }
+
+        .pantalla-modal input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .pantalla-modal button {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            border-radius: 30px;
+            border: none;
+            background: linear-gradient(45deg, var(--color-azul), #0055ff);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .pantalla-modal button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px var(--color-azul);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="pantalla-inicio" class="pantalla-modal">
+        <h2 id="titulo-modal">SIMON DICE</h2>
+        <input type="text" id="nombre-jugador" placeholder="Escribe tu nombre" autocomplete="off">
+        <button onclick="comenzarJuego()" id="btn-accion">Jugar</button>
+    </div>
+
+    <h1>Simon Dice</h1>
+    
+    <div class="estadisticas">
+        <p>Ronda Actual: <span id="ronda" style="color: var(--color-verde);">0</span></p>
+        <p>Récord: <span id="mejor-puntaje" style="color: var(--color-amarillo);">0</span> 
+           (<span id="mejor-jugador">Nadie</span>)</p>
+    </div>
+
+    <div class="tablero" id="contenedor-tablero">
+        <div id="verde" class="boton" onclick="jugarColor('verde')"></div>
+        <div id="rojo" class="boton" onclick="jugarColor('rojo')"></div>
+        <div id="amarillo" class="boton" onclick="jugarColor('amarillo')"></div>
+        <div id="azul" class="boton" onclick="jugarColor('azul')"></div>
+    </div>
+
+    <script>
+        let secuencia = [];
+        let usuario = [];
+        let colores = ['verde', 'rojo', 'amarillo', 'azul'];
+        let nombreActual = "";
+        let rondaActual = 0;
+        let bloqueado = true; // Evita que el usuario haga clic cuando no debe
+
+        // Cargar datos guardados en el navegador al iniciar la página
+        window.onload = () => {
+            let recordGuardado = localStorage.getItem('simonMejorPuntaje');
+            let jugadorGuardado = localStorage.getItem('simonMejorJugador');
+            
+            if (recordGuardado && jugadorGuardado) {
+                document.getElementById('mejor-puntaje').innerText = recordGuardado;
+                document.getElementById('mejor-jugador').innerText = jugadorGuardado;
+            }
+        };
+
+        function comenzarJuego() {
+            let inputNombre = document.getElementById('nombre-jugador').value;
+            if (inputNombre.trim() === "") {
+                alert("Por favor, ingresa tu nombre para poder registrar tu puntuación.");
+                return;
+            }
+            nombreActual = inputNombre;
+            document.getElementById('pantalla-inicio').style.display = 'none';
+            iniciarJuego();
+        }
+
+        function iniciarJuego() {
+            secuencia = [];
+            usuario = [];
+            rondaActual = 0;
+            actualizarRonda();
+            setTimeout(agregarColor, 800);
+        }
+
+        function agregarColor() {
+            usuario = [];
+            rondaActual++;
+            actualizarRonda();
+            let colorAleatorio = colores[Math.floor(Math.random() * 4)];
+            secuencia.push(colorAleatorio);
+            mostrarSecuencia();
+        }
+
+        function actualizarRonda() {
+            document.getElementById('ronda').innerText = rondaActual;
+        }
+
+        async function mostrarSecuencia() {
+            bloqueado = true; // Bloquea los clics del usuario
+            for (let color of secuencia) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                iluminar(color);
+                await new Promise(resolve => setTimeout(resolve, 400)); // Pausa entre luces
+            }
+            bloqueado = false; // Permite al usuario jugar
+        }
+
+        function iluminar(color) {
+            let btn = document.getElementById(color);
+            btn.classList.add('active');
+            setTimeout(() => btn.classList.remove('active'), 350);
+        }
+
+        function jugarColor(color) {
+            if (bloqueado) return; // Si está bloqueado, no hace nada al hacer clic
+
+            usuario.push(color);
+            iluminar(color);
+
+            let index = usuario.length - 1;
+            
+            // Si se equivoca
+            if (usuario[index] !== secuencia[index]) {
+                gameOver();
+                return;
+            }
+
+            // Si completa la secuencia correctamente
+            if (usuario.length === secuencia.length) {
+                bloqueado = true;
+                setTimeout(agregarColor, 1000);
+            }
+        }
+
+        function gameOver() {
+            bloqueado = true;
+            let rondasCompletadas = rondaActual - 1;
+            let recordActual = parseInt(localStorage.getItem('simonMejorPuntaje')) || 0;
+
+            let mensaje = "¡Has Perdido!";
+            
+            // Comprobar si rompió el récord
+            if (rondasCompletadas > recordActual) {
+                localStorage.setItem('simonMejorPuntaje', rondasCompletadas);
+                localStorage.setItem('simonMejorJugador', nombreActual);
+                
+                document.getElementById('mejor-puntaje').innerText = rondasCompletadas;
+                document.getElementById('mejor-jugador').innerText = nombreActual;
+                
+                mensaje = "¡NUEVO RÉCORD!";
+            }
+
+            // Mostrar la pantalla inicial modificada para el Game Over
+            let pantallaModal = document.getElementById('pantalla-inicio');
+            let tituloModal = document.getElementById('titulo-modal');
+            let btnAccion = document.getElementById('btn-accion');
+
+            tituloModal.innerText = mensaje + `\nLlegaste a la ronda ${rondaActual}`;
+            tituloModal.style.color = "var(--color-rojo)";
+            tituloModal.style.textShadow = "0 0 20px var(--color-rojo)";
+            
+            btnAccion.innerText = "Volver a Jugar";
+            btnAccion.style.background = "linear-gradient(45deg, var(--color-rojo), #ff5500)";
+            
+            pantallaModal.style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

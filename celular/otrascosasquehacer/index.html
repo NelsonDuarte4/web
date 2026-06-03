@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juan Baez Romero | Portafolio Professional</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <nav id="navbar">
+        <div class="nav-content">
+            <div class="logo">JBR.</div>
+            <button class="menu-toggle" aria-label="Abrir menú">☰</button>
+            <ul class="nav-links">
+                <li><a href="#inicio">Inicio</a></li>
+                <li><a href="#proyectos">Proyectos</a></li>
+                <li><a href="#contacto">Contacto</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <section id="inicio" class="hero">
+        <div class="hero-content">
+            <p class="greeting">Hola, mi nombre es</p>
+            <h1>Juan Baez Romero</h1>
+            <h2>Desarrollador Web & Programador.</h2>
+            <p class="hero-desc">Me dedico a crear soluciones digitales eficientes, limpias y con un diseño impecable. Actualmente enfocado en proyectos de software dinámicos.</p>
+            <a href="#contacto" class="btn btn-primary">Hablemos</a>
+        </div>
+    </section>
+
+    <section id="proyectos" class="section">
+        <div class="section-title">
+            <h2>Mis Proyectos</h2>
+            <div class="line"></div>
+        </div>
+        <div class="proyectos-grid" id="proyectos-container"></div>
+    </section>
+
+    <section id="contacto" class="section">
+        <div class="form-container">
+            <h2>Ponte en contacto</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 25px; text-align: center;">Escríbeme para colaborar en proyectos o simplemente para saludar.</p>
+            
+            <form id="contact-form" action="https://formspree.io/f/TU_ID_DE_FORMSPREE" method="POST">
+                <input type="text" name="name" placeholder="Tu Nombre" required>
+                <input type="email" name="email" placeholder="Tu Correo Electrónico" required>
+                <textarea name="message" placeholder="Escribe tu mensaje aquí..." rows="5" required></textarea>
+                <button type="submit" class="btn btn-block">Enviar Mensaje</button>
+            </form>
+        </div>
+    </section>
+
+    <footer>
+        <p>© 2026 Diseñado y construido por Juan Baez Romero</p>
+    </footer>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "proyectos": [
+    {
+      "titulo": "Gestión de Tareas",
+      "descripcion": "Una aplicación web interactiva para gestionar tareas pendientes, optimizar el tiempo y organizar la productividad diaria.",
+      "link": "#"
+    },
+    {
+      "titulo": "E-commerce Básico",
+      "descripcion": "Simulación de una tienda en línea con catálogo dinámico de productos, filtros avanzados y carrito de compras funcional.",
+      "link": "#"
+    },
+    {
+      "titulo": "Bot de Automatización",
+      "descripcion": "Script desarrollado para automatizar la extracción de datos web y enviar reportes diarios por correo electrónico.",
+      "link": "#"
+    }
+  ]
+}

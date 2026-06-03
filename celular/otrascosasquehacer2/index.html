@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Para ti </title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffb6c1">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
+
+        body {
+            background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Flores animadas - Aumentamos tamaño y opacidad para que se vean bien */
+        .flor-bg {
+            position: absolute;
+            font-size: 100px; 
+            opacity: 0.3; 
+            z-index: 0;
+            animation: flotar 15s infinite ease-in-out;
+        }
+
+        @keyframes flotar {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(40px, -40px) rotate(15deg); }
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 30px 25px;
+            border-radius: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 380px;
+            width: 100%;
+            z-index: 1;
+        }
+
+        .header-title { font-size: 1.5rem; color: #486581; margin-bottom: 20px; font-weight: 800; }
+
+        .image-container {
+            width: 100%;
+            height: 250px;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+            border: 4px solid #f0f4f8;
+        }
+
+        .image-container img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.4s ease-in-out; }
+
+        .frase {
+            font-size: 1.3rem;
+            color: #555;
+            font-weight: 700;
+            line-height: 1.4;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px;
+            transition: opacity 0.4s ease-in-out;
+        }
+
+        .btn {
+            background: #486581;
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            font-size: 1.2rem;
+            font-weight: 800;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 8px 15px rgba(72, 101, 129, 0.3);
+            transition: transform 0.2s;
+            width: 100%;
+        }
+
+        .btn:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+    <!-- Aquí tienes más flores, más repartidas y más visibles -->
+    <div class="flor-bg" style="top: 5%; left: 5%;">🌸</div>
+    <div class="flor-bg" style="top: 15%; right: 10%; animation-delay: -3s;">🌷</div>
+    <div class="flor-bg" style="bottom: 10%; left: 10%; animation-delay: -6s;">🌸</div>
+    <div class="flor-bg" style="bottom: 20%; right: 5%; animation-delay: -9s;">🌷</div>
+    <div class="flor-bg" style="top: 40%; left: 80%; animation-delay: -12s;">🌸</div>
+    <div class="flor-bg" style="top: 60%; left: 2%; animation-delay: -14s;">🌷</div>
+
+    <div class="card">
+        <div class="header-title">Un mensaje para ti </div>
+        
+        <div class="image-container">
+            <img id="mascota-img" src="" alt="Mascota">
+        </div>
+
+        <p class="frase" id="txt-frase">Cargando algo especial...</p>
+        
+        <button class="btn" onclick="mostrarNuevaInspiracion()">Ver otra 🐾</button>
+    </div>
+
+    <script>
+        const contenido = [
+            { frase: "Eres una mujer fuerte, valiente y capaz de todo. ¡Nunca dejes de brillar! ✨", img: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=600&auto=format&fit=crop" },
+            { frase: "Tu sonrisa tiene el poder de iluminar los días más grises. ¡Sonríe hermosa! 🌷", img: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=600&auto=format&fit=crop" },
+            { frase: "Recuerda lo maravillosa que eres. Tienes la inteligencia y la fuerza para conquistar el mundo. 👑", img: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=600&auto=format&fit=crop" },
+            { frase: "Que nada ni nadie apague tu luz. Eres inspiración pura. 💖", img: "https://images.unsplash.com/photo-1573865526739-10659fec78a5?q=80&w=600&auto=format&fit=crop" },
+            { frase: "Confía en ti misma, en tu intuición y en tu magia de mujer. ¡Eres imparable! 🚀", img: "https://images.unsplash.com/photo-1537151625747-768eb64266ae?q=80&w=600&auto=format&fit=crop" },
+            { frase: "Hoy es un buen día para recordarte lo hermosa e increíble que eres por dentro y por fuera. 🌺", img: "https://images.unsplash.com/photo-1592194996308-7b43878e84a6?q=80&w=600&auto=format&fit=crop" },
+            { frase: "No hay límites para lo que una mujer como tú puede lograr. ¡A por todas! 💪", img: "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?q=80&w=600&auto=format&fit=crop" },
+            { frase: "Tu resiliencia te ha traído hasta aquí. Siéntete súper orgullosa de cada paso que das. 🦋", img: "https://images.unsplash.com/photo-1517849845537-4d257902454a?q=80&w=600&auto=format&fit=crop" },
+            { frase: "Eres el arquitecto de tu propio destino, y estás construyendo algo hermoso. 🏰", img: "https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?q=80&w=600&auto=format&fit=crop" },
+            { frase: "Nunca subestimes el poder de tus sueños. Tienes todo para hacerlos realidad. 🌟", img: "https://images.unsplash.com/photo-1507146426996-ef05306b995a?q=80&w=600&auto=format&fit=crop" }
+        ];
+
+        let indiceAnterior = -1;
+
+        function mostrarNuevaInspiracion() {
+            const texto = document.getElementById("txt-frase");
+            const imagen = document.getElementById("mascota-img");
+            
+            let nuevoIndice;
+            do {
+                nuevoIndice = Math.floor(Math.random() * contenido.length);
+            } while (nuevoIndice === indiceAnterior);
+            
+            indiceAnterior = nuevoIndice;
+
+            texto.style.opacity = 0;
+            imagen.style.opacity = 0;
+
+            setTimeout(() => {
+                texto.innerText = contenido[nuevoIndice].frase;
+                imagen.src = contenido[nuevoIndice].img;
+                texto.style.opacity = 1;
+                imagen.style.opacity = 1;
+            }, 400);
+        }
+
+        window.onload = mostrarNuevaInspiracion;
+    </script>
+</body>
+</html>

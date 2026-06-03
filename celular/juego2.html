@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Esquiva los Bloques</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        body {
+            background-color: #111;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        /* Contenedor del juego (Pantalla de celular simulada) */
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            max-height: 700px;
+            background-color: #222;
+            border: 4px solid #333;
+            overflow: hidden;
+        }
+        /* Marcador */
+        #ui {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            z-index: 10;
+        }
+        /* Carriles visuales */
+        .carril {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 33.33%;
+            border-right: 1px dashed #333;
+        }
+        .carril:nth-child(1) { left: 0; }
+        .carril:nth-child(2) { left: 33.33%; }
+        .carril:nth-child(3) { left: 66.66%; border-right: none; }
+
+        /* Jugador */
+        #jugador {
+            position: absolute;
+            bottom: 40px;
+            width: 60px;
+            height: 60px;
+            background-color: #00ffcc;
+            border-radius: 10px;
+            transition: left 0.1s ease-out; /* Movimiento suave */
+            transform: translateX(-50%);
+        }
+        /* Obstáculos */
+        .obstaculo {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background-color: #ff3366;
+            border-radius: 10px;
+            transform: translateX(-50%);
+        }
+        /* Pantalla de Game Over */
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 20;
+            display: none;
+        }
+        #game-over-screen h1 { color: #ff3366; margin-bottom: 20px; }
+        #game-over-screen button {
+            padding: 10px 20px;
+            font-size: 1.1rem;
+            background-color: #00ffcc;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="ui">
+            <div>Puntos: <span id="score">0</span></div>
+            <div>Récord: <span id="highscore">0</span></div>
+        </div>
+
+        <div class="carril"></div>
+        <div class="carril"></div>
+        <div class="carril"></div>
+
+        <div id="jugador"></div>
+
+        <div id="game-over-screen" id="game-over">
+            <h1>¡GAME OVER!</h1>
+            <p style="margin-bottom: 20px;">Puntaje final: <span id="final-score">0</span></p>
+            <button onclick="reiniciarJuego()">Jugar de nuevo</button>
+        </div>
+    </div>
+
+<script>
+    // Configuración y variables del juego
+    const jugador = document.getElementById('jugador');
+    const gameContainer = document.getElementById('game-container');
+    const scoreText = document.getElementById('score');
+    const highscoreText = document.getElementById('highscore');
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const finalScoreText = document.getElementById('final-score');
+
+    // Coordenadas X en porcentaje para cada carril (centrados)
+    const posicionesCarril = [16.66, 50, 83.33]; 
+    let carrilActual = 1; // Empezamos en el centro (carril 1)
+    
+    let puntos = 0;
+    let record = localStorage.getItem('record_esquiva') || 0;
+    highscoreText.innerText = record;
+
+    let juegoActivo = true;
+    let listaObstaculos = [];
+    let velocidadObstaculos = 5; // Píxeles que baja por frame
+    let tiempoAparicion = 1200; // Milisegundos entre obstáculos
+    let bucleObstaculos;
+
+    // --- MOVIMIENTO DEL JUGADOR ---
+    function actualizarPosicionJugador() {
+        jugador.style.left = posicionesCarril[carrilActual] + "%";
+    }
+    actualizarPosicionJugador(); // Posición inicial
+
+    // Detectar toques en la pantalla (Celular) o Clics (PC)
+    gameContainer.addEventListener('click', (e) => {
+        if (!juegoActivo) return;
+
+        const anchoPantalla = gameContainer.offsetWidth;
+        const clickX = e.clientX - gameContainer.getBoundingClientRect().left;
+
+        if (clickX < anchoPantalla / 2) {
+            // Tocó lado izquierdo
+            if (carrilActual > 0) carrilActual--;
+        } else {
+            // Tocó lado derecho
+            if (carrilActual < 2) carrilActual++;
+        }
+        actualizarPosicionJugador();
+    });
+
+    // Soporte también para jugar con las flechas del teclado en PC
+    window.addEventListener('keydown', (e) => {
+        if (!juegoActivo) return;
+        if (e.key === "ArrowLeft" && carrilActual > 0) carrilActual--;
+        if (e.key === "ArrowRight" && carrilActual < 2) carrilActual++;
+        actualizarPosicionJugador();
+    });
+
+
+    // --- LÓGICA DE OBSTÁCULOS ---
+    function crearObstaculo() {
+        if (!juegoActivo) return;
+
+        const carrilAzar = Math.floor(Math.random() * 3);
+        const nuevoObstaculo = document.createElement('div');
+        nuevoObstaculo.classList.add('obstaculo');
+        nuevoObstaculo.style.left = posicionesCarril[carrilAzar] + "%";
+        nuevoObstaculo.style.top = "-60px"; // Empieza arriba oculto
+        
+        // Guardamos su información en un objeto lógico
+        const infoObstaculo = {
+            elemento: nuevoObstaculo,
+            carril: carrilAzar,
+            y: -60
+        };
+
+        gameContainer.appendChild(nuevoObstaculo);
+        listaObstaculos.push(infoObstaculo);
+    }
+
+    // Iniciar el generador de obstáculos
+    function iniciarGenerador() {
+        bucleObstaculos = setInterval(crearObstaculo, tiempoAparicion);
+    }
+
+
+    // --- BUCLE PRINCIPAL DEL JUEGO (FRAME POR FRAME) ---
+    function juegoLoop() {
+        if (!juegoActivo) return;
+
+        // Alto del contenedor y posición Y del jugador
+        const altoContenedor = gameContainer.offsetHeight;
+        const jugadorY = altoContenedor - 40 - 60; // bottom + altura del jugador
+
+        for (let i = listaObstaculos.length - 1; i >= 0; i--) {
+            let obs = listaObstaculos[i];
+            obs.y += velocidadObstaculos;
+            obs.elemento.style.top = obs.y + "px";
+
+            // CONTROL DE COLISIÓN
+            // Si el bloque llega a la altura Y del jugador
+            if (obs.y + 60 >= jugadorY && obs.y <= jugadorY + 60) {
+                // Y además está en el mismo carril
+                if (obs.carril === carrilActual) {
+                    gameOver();
+                    return;
+                }
+            }
+
+            // Si el bloque sale por abajo de la pantalla
+            if (obs.y > altoContenedor) {
+                obs.elemento.remove(); // Lo borra visualmente
+                listaObstaculos.splice(i, 1); // Lo borra del arreglo
+                puntos += 10; // Suma puntos por esquivar
+                scoreText.innerText = puntos;
+
+                // Dificultad progresiva: aumenta velocidad cada 100 puntos
+                if (puntos % 100 === 0) {
+                    velocidadObstaculos += 0.5;
+                }
+            }
+        }
+
+        requestAnimationFrame(juegoLoop);
+    }
+
+
+    // --- FIN DEL JUEGO Y REINICIO ---
+    function gameOver() {
+        juegoActivo = false;
+        clearInterval(bucleObstaculos);
+        
+        if (puntos > record) {
+            record = puntos;
+            localStorage.setItem('record_esquiva', record);
+            highscoreText.innerText = record;
+        }
+
+        finalScoreText.innerText = puntos;
+        gameOverScreen.style.display = "flex";
+    }
+
+    function reiniciarJuego() {
+        // Limpiar obstáculos viejos
+        listaObstaculos.forEach(obs => obs.elemento.remove());
+        listaObstaculos = [];
+
+        // Resetear variables
+        puntos = 0;
+        scoreText.innerText = puntos;
+        carrilActual = 1;
+        velocidadObstaculos = 5;
+        actualizarPosicionJugador();
+        
+        // Ocultar pantalla de Game Over y arrancar
+        gameOverScreen.style.display = "none";
+        juegoActivo = true;
+        
+        clearInterval(bucleObstaculos);
+        iniciarGenerador();
+        juegoLoop();
+    }
+
+    // Arrancar el juego por primera vez
+    iniciarGenerador();
+    juegoLoop();
+
+</script>
+</body>
+</html>
