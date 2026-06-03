@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Esquiva los Bloques: ULTRA</title>
+    
+    <!-- LIBRERÍAS DE FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+
     <style>
         * {
             box-sizing: border-box;
@@ -104,7 +109,7 @@
         .carril:nth-child(2) { left: 33.33%; }
         .carril:nth-child(3) { left: 66.66%; border-right: none; }
 
-        /* JUGADOR Y ESTELA (GHOST TRAIL) */
+        /* JUGADOR Y ESTELA */
         #jugador {
             position: absolute;
             bottom: 50px;
@@ -138,7 +143,7 @@
             to { opacity: 0; transform: translateX(-50%) scale(0.8); }
         }
 
-        /* TEXTO FLOTANTE (NEAR MISS / COMBO) */
+        /* TEXTO FLOTANTE */
         .texto-flotante {
             position: absolute;
             font-weight: calc(900);
@@ -221,7 +226,7 @@
             cursor: pointer;
             font-weight: bold;
             box-shadow: 0 4px 15px rgba(0,255,204,0.4);
-            pointer-events: auto; /* Asegurar que el botón reciba clics */
+            pointer-events: auto;
         }
     </style>
 </head>
@@ -253,6 +258,21 @@
     </div>
 
 <script>
+    // --- CONFIGURACIÓN E INICIALIZACIÓN DE FIREBASE ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBG3AtCYrmytxkflVyY7fjS4H3hFtTISPY",
+        authDomain: "juego-ce64b.firebaseapp.com",
+        databaseURL: "https://juego-ce64b-default-rtdb.firebaseio.com",
+        projectId: "juego-ce64b",
+        storageBucket: "juego-ce64b.firebasestorage.app",
+        messagingSenderId: "91540193723",
+        appId: "1:91540193723:web:40c37fe91e3c1ad86e049e"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // --- VARIABLES DEL JUEGO ---
     const jugador = document.getElementById('jugador');
     const gameContainer = document.getElementById('game-container');
     const flashLayer = document.getElementById('flash-layer');
@@ -272,23 +292,20 @@
 
     let juegoActivo = true;
     let listaElementos = [];
-    let listaLineas = []; // Líneas de velocidad de fondo
+    let listaLineas = []; 
     
-    // Configuración física base
     let velocidadObjetos = 5; 
     let tiempoAparicion = 1100; 
     let bucleElementos;
     
-    // Variables de las nuevas mecánicas
     let tieneEscudo = false; 
     let monedasConsecutivas = 0;
     let multiplicadorCombo = 1;
     let nivelActual = 1;
     
-    // Paleta de colores para fondos de nivel
     const coloresNiveles = ['#1a1a1a', '#0a192f', '#190a2f', '#2f0a19', '#0a2f24'];
 
-    // --- SISTEMA DE AUDIO (SINTETIZADOR WEB) ---
+    // --- AUDIO ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx = new AudioContext();
 
@@ -352,7 +369,7 @@
         }
     }
 
-    // --- EFECTO GHOST TRAIL (ESTELA) ---
+    // --- EFECTOS ---
     function crearEstela(posicionXOriginal) {
         const estela = document.createElement('div');
         estela.classList.add('ghost-trail');
@@ -372,7 +389,6 @@
     }
     actualizarPosicionJugador(); 
 
-    // --- EFECTO TEXTO FLOTANTE ---
     function lanzarTextoFlotante(texto, color, yPos) {
         const divTxt = document.createElement('div');
         divTxt.classList.add('texto-flotante');
@@ -384,7 +400,6 @@
         setTimeout(() => divTxt.remove(), 600);
     }
 
-    // --- LÍNEAS DE VELOCIDAD DE FONDO ---
     function crearLineasVelocidad() {
         for(let i=0; i<12; i++) {
             const linea = document.createElement('div');
@@ -402,7 +417,7 @@
         linea.style.height = (Math.random() * 80 + 40) + "px";
     }
 
-    // --- CONTROLES MÓVILES E HÍBRIDOS ---
+    // --- CONTROLES ---
     function manejarEntrada(clientX) {
         if (audioCtx.state === 'suspended') audioCtx.resume();
         if (!juegoActivo) return;
@@ -418,7 +433,6 @@
         actualizarPosicionJugador();
     }
 
-    // AQUI ESTÁ LA CORRECCIÓN DEL BOTÓN
     gameContainer.addEventListener('touchstart', (e) => {
         if (e.target.tagName === 'BUTTON') return; 
         e.preventDefault(); 
@@ -438,7 +452,7 @@
         actualizarPosicionJugador();
     });
 
-    // --- GENERADOR RANDOM DE ELEMENTOS ---
+    // --- LÓGICA PRINCIPAL ---
     function crearElemento() {
         if (!juegoActivo) return;
 
@@ -479,14 +493,12 @@
         bucleElementos = setInterval(crearElemento, tiempoAparicion);
     }
 
-    // --- BUCLE PRINCIPAL DEL JUEGO (FRAME POR FRAME) ---
     function juegoLoop() {
         if (!juegoActivo) return;
 
         const altoContenedor = gameContainer.offsetHeight;
         const jugadorY = altoContenedor - 50 - 55; 
 
-        // 1. Mover líneas de velocidad (Fondo)
         for(let i=0; i<listaLineas.length; i++) {
             let linea = listaLineas[i];
             let topActual = parseFloat(linea.style.top);
@@ -497,13 +509,11 @@
             }
         }
 
-        // 2. Mover obstáculos e ítems
         for (let i = listaElementos.length - 1; i >= 0; i--) {
             let obj = listaElementos[i];
             obj.y += velocidadObjetos;
             obj.elemento.style.top = obj.y + "px";
 
-            // MECÁNICA: DETECTAR "NEAR MISS" (CASI CHOQUE)
             if (obj.tipo === 'obstaculo' && !obj.nearMissRegistrado) {
                 if (obj.y + 55 >= jugadorY && obj.y <= jugadorY + 55) {
                     if (Math.abs(obj.carril - carrilActual) === 1) {
@@ -517,7 +527,6 @@
                 }
             }
 
-            // DETECTAR COLISIONES DIRECTAS
             if (obj.y + 55 >= jugadorY && obj.y + 10 <= jugadorY + 55) {
                 if (obj.carril === carrilActual) {
                     
@@ -541,7 +550,6 @@
                     else if (obj.tipo === 'moneda') {
                         monedasConsecutivas++;
                         
-                        // Sistema de Combos de Monedas
                         if (monedasConsecutivas >= 6) {
                             multiplicadorCombo = 3;
                             comboBadge.style.backgroundColor = "#ff3366";
@@ -584,7 +592,6 @@
                 }
             }
 
-            // CUANDO SALEN POR DEBAJO DE LA PANTALLA
             if (obj.y > altoContenedor) {
                 obj.elemento.remove();
                 
@@ -610,7 +617,6 @@
         requestAnimationFrame(juegoLoop);
     }
 
-    // --- ADAPTACIÓN DE DIFICULTAD Y NIVELES DINÁMICOS ---
     function revisarCambioNivel() {
         let nuevoNivelCalculado = Math.floor(puntos / 500) + 1;
         
@@ -650,6 +656,18 @@
             record = puntos;
             localStorage.setItem('record_esquiva', record);
             highscoreText.innerText = record;
+
+            // Lógica de guardado en Firebase
+            setTimeout(() => {
+                let nombre = prompt("¡NUEVO RÉCORD! Escribe tu nombre para la tabla de clasificación:");
+                if (nombre) {
+                    db.ref('ranking/').push({
+                        nombre: nombre,
+                        puntos: record,
+                        fecha: new Date().toLocaleDateString()
+                    });
+                }
+            }, 100); 
         }
 
         finalScoreText.innerText = puntos;
@@ -687,7 +705,6 @@
         juegoLoop();
     }
 
-    // Arrancar ambiente del juego
     crearLineasVelocidad();
     iniciarGenerador();
     juegoLoop();
