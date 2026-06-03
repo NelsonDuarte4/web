@@ -2,88 +2,206 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Esquiva los Bloques</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Esquiva los Bloques: ULTRA</title>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
         }
         body {
-            background-color: #111;
+            background-color: #0a0a0a;
             font-family: Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            height: 100svh;
             overflow: hidden;
         }
-        /* Contenedor del juego (Pantalla de celular simulada) */
         #game-container {
             position: relative;
             width: 100%;
             max-width: 400px;
             height: 100%;
-            max-height: 700px;
-            background-color: #222;
-            border: 4px solid #333;
+            background-color: #1a1a1a;
+            border: 2px solid #333;
             overflow: hidden;
+            transition: background-color 0.8s ease; /* Transición suave de color de nivel */
         }
-        /* Marcador */
+        
+        /* EFECTOS VISUALES Y ANIMACIONES */
+        .shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(3px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+        .flash {
+            animation: flashBg 0.4s ease-out;
+        }
+        @keyframes flashBg {
+            0% { background-color: #fff; }
+            100% { background-color: transparent; }
+        }
+
+        /* LÍNEAS DE VELOCIDAD DE FONDO */
+        .linea-velocidad {
+            position: absolute;
+            width: 2px;
+            background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.15));
+            z-index: 1;
+        }
+
+        /* INTERFAZ DE USUARIO (UI) */
         #ui {
             position: absolute;
-            top: 15px;
+            top: 25px;
             left: 0;
             width: 100%;
             display: flex;
-            justify-content: space-around;
+            flex-direction: column;
+            align-items: center;
             color: white;
-            font-size: 1.2rem;
             font-weight: bold;
             z-index: 10;
+            gap: 5px;
         }
-        /* Carriles visuales */
+        .ui-fila {
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            font-size: 1.1rem;
+        }
+        #combo-badge {
+            background-color: #ffd700;
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            box-shadow: 0 0 8px #ffd700;
+            transition: transform 0.1s ease;
+            display: none;
+        }
+
         .carril {
             position: absolute;
             top: 0;
             bottom: 0;
             width: 33.33%;
-            border-right: 1px dashed #333;
+            border-right: 1px dashed rgba(255,255,255,0.05);
+            z-index: 2;
         }
         .carril:nth-child(1) { left: 0; }
         .carril:nth-child(2) { left: 33.33%; }
         .carril:nth-child(3) { left: 66.66%; border-right: none; }
 
-        /* Jugador */
+        /* JUGADOR Y ESTELA (GHOST TRAIL) */
         #jugador {
             position: absolute;
-            bottom: 40px;
-            width: 60px;
-            height: 60px;
+            bottom: 50px;
+            width: 55px;
+            height: 55px;
             background-color: #00ffcc;
-            border-radius: 10px;
-            transition: left 0.1s ease-out; /* Movimiento suave */
+            border-radius: 12px;
+            transition: left 0.12s cubic-bezier(0.1, 0.6, 0.2, 1);
             transform: translateX(-50%);
+            box-shadow: 0 0 20px #00ffcc;
+            z-index: 5;
         }
-        /* Obstáculos */
+        #jugador.protegido {
+            border: 4px solid #00bfff;
+            box-shadow: 0 0 25px #00bfff, 0 0 10px #00ffcc;
+            background-color: #e0ffff;
+        }
+        .ghost-trail {
+            position: absolute;
+            bottom: 50px;
+            width: 55px;
+            height: 55px;
+            background-color: rgba(0, 255, 204, 0.4);
+            border-radius: 12px;
+            transform: translateX(-50%);
+            pointer-events: none;
+            z-index: 4;
+            animation: fadeTrail 0.25s linear forwards;
+        }
+        @keyframes fadeTrail {
+            to { opacity: 0; transform: translateX(-50%) scale(0.8); }
+        }
+
+        /* TEXTO FLOTANTE (NEAR MISS / COMBO) */
+        .texto-flotante {
+            position: absolute;
+            font-weight: calc(900);
+            font-size: 1.3rem;
+            pointer-events: none;
+            z-index: 6;
+            transform: translateX(-50%);
+            animation: flotarHaciaArriba 0.6s ease-out forwards;
+        }
+        @keyframes flotarHaciaArriba {
+            0% { opacity: 1; margin-top: 0; }
+            100% { opacity: 0; margin-top: -60px; }
+        }
+
+        /* ELEMENTOS DEL JUEGO */
         .obstaculo {
             position: absolute;
-            width: 60px;
-            height: 60px;
+            width: 55px;
+            height: 55px;
             background-color: #ff3366;
-            border-radius: 10px;
+            border-radius: 12px;
             transform: translateX(-50%);
+            box-shadow: 0 0 12px #ff3366;
+            z-index: 4;
         }
-        /* Pantalla de Game Over */
+        .moneda {
+            position: absolute;
+            width: 38px;
+            height: 38px;
+            background-color: #ffd700;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 15px #ffd700;
+            border: 2px solid #fff;
+            z-index: 3;
+            animation: girar 0.8s linear infinite;
+        }
+        .escudo-item {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: #00bfff;
+            border-radius: 8px;
+            transform: translateX(-50%) rotate(45deg);
+            box-shadow: 0 0 15px #00bfff;
+            border: 2px solid #fff;
+            z-index: 3;
+        }
+
+        @keyframes girar {
+            0% { transform: translateX(-50%) scaleX(1); }
+            50% { transform: translateX(-50%) scaleX(0.1); }
+            100% { transform: translateX(-50%) scaleX(1); }
+        }
+
+        /* SCREEN GAME OVER */
         #game-over-screen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.85);
+            background-color: rgba(0,0,0,0.9);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -92,24 +210,32 @@
             z-index: 20;
             display: none;
         }
-        #game-over-screen h1 { color: #ff3366; margin-bottom: 20px; }
+        #game-over-screen h1 { color: #ff3366; margin-bottom: 20px; font-size: 2.5rem; text-shadow: 0 0 12px #ff3366;}
         #game-over-screen button {
-            padding: 10px 20px;
-            font-size: 1.1rem;
+            padding: 15px 35px;
+            font-size: 1.2rem;
             background-color: #00ffcc;
+            color: #000;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,255,204,0.4);
         }
     </style>
 </head>
 <body>
 
     <div id="game-container">
+        <div id="flash-layer" style="position:absolute; width:100%; height:100%; z-index:8; pointer-events:none;"></div>
+        
         <div id="ui">
-            <div>Puntos: <span id="score">0</span></div>
-            <div>Récord: <span id="highscore">0</span></div>
+            <div class="ui-fila">
+                <div>Puntos: <span id="score">0</span></div>
+                <div>Nivel: <span id="level-txt">1</span></div>
+                <div>Récord: <span id="highscore">0</span></div>
+            </div>
+            <div id="combo-badge">Combo x1</div>
         </div>
 
         <div class="carril"></div>
@@ -118,140 +244,415 @@
 
         <div id="jugador"></div>
 
-        <div id="game-over-screen" id="game-over">
-            <h1>¡GAME OVER!</h1>
-            <p style="margin-bottom: 20px;">Puntaje final: <span id="final-score">0</span></p>
-            <button onclick="reiniciarJuego()">Jugar de nuevo</button>
+        <div id="game-over-screen">
+            <h1>¡CRASH!</h1>
+            <p style="margin-bottom: 20px; font-size: 1.2rem;">Puntaje final: <strong id="final-score">0</strong></p>
+            <button onclick="reiniciarJuego()">Volver a intentar</button>
         </div>
     </div>
 
 <script>
-    // Configuración y variables del juego
     const jugador = document.getElementById('jugador');
     const gameContainer = document.getElementById('game-container');
+    const flashLayer = document.getElementById('flash-layer');
     const scoreText = document.getElementById('score');
+    const levelText = document.getElementById('level-txt');
     const highscoreText = document.getElementById('highscore');
+    const comboBadge = document.getElementById('combo-badge');
     const gameOverScreen = document.getElementById('game-over-screen');
     const finalScoreText = document.getElementById('final-score');
 
-    // Coordenadas X en porcentaje para cada carril (centrados)
     const posicionesCarril = [16.66, 50, 83.33]; 
-    let carrilActual = 1; // Empezamos en el centro (carril 1)
+    let carrilActual = 1; 
     
     let puntos = 0;
     let record = localStorage.getItem('record_esquiva') || 0;
     highscoreText.innerText = record;
 
     let juegoActivo = true;
-    let listaObstaculos = [];
-    let velocidadObstaculos = 5; // Píxeles que baja por frame
-    let tiempoAparicion = 1200; // Milisegundos entre obstáculos
-    let bucleObstaculos;
+    let listaElementos = [];
+    let listaLineas = []; // Líneas de velocidad de fondo
+    
+    // Configuración física base
+    let velocidadObjetos = 5; 
+    let tiempoAparicion = 1100; 
+    let bucleElementos;
+    
+    // Variables de las nuevas mecánicas
+    let tieneEscudo = false; 
+    let monedasConsecutivas = 0;
+    let multiplicadorCombo = 1;
+    let nivelActual = 1;
+    
+    // Paleta de colores para fondos de nivel
+    const coloresNiveles = ['#1a1a1a', '#0a192f', '#190a2f', '#2f0a19', '#0a2f24'];
 
-    // --- MOVIMIENTO DEL JUGADOR ---
-    function actualizarPosicionJugador() {
-        jugador.style.left = posicionesCarril[carrilActual] + "%";
+    // --- SISTEMA DE AUDIO (SINTETIZADOR WEB) ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = new AudioContext();
+
+    function reproducirSonido(tipo) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        if (tipo === 'punto') {
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(700, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06);
+            oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.06);
+        } else if (tipo === 'moneda') {
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // LA
+            oscillator.frequency.setValueAtTime(1320, audioCtx.currentTime + 0.07); // MI
+            gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+            oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.2);
+        } else if (tipo === 'near_miss') {
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+            oscillator.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+            oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.12);
+        } else if (tipo === 'escudo_up') {
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(250, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.25);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+            oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.25);
+        } else if (tipo === 'escudo_break') {
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(500, audioCtx.currentTime);
+            oscillator.frequency.linearRampToValueAtTime(150, audioCtx.currentTime + 0.15);
+            gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+            oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.15);
+        } else if (tipo === 'choque') {
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(140, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.4);
+            gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.4);
+        } else if (tipo === 'nivel') {
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+            oscillator.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.08); 
+            oscillator.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.16); 
+            oscillator.frequency.setValueAtTime(1046.50, audioCtx.currentTime + 0.24); 
+            gainNode.gain.setValueAtTime(0.06, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+            oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.4);
+        }
     }
-    actualizarPosicionJugador(); // Posición inicial
 
-    // Detectar toques en la pantalla (Celular) o Clics (PC)
-    gameContainer.addEventListener('click', (e) => {
-        if (!juegoActivo) return;
+    // --- EFECTO GHOST TRAIL (ESTELA) ---
+    function crearEstela(posicionXOriginal) {
+        const estela = document.createElement('div');
+        estela.classList.add('ghost-trail');
+        estela.style.left = posicionXOriginal;
+        if (tieneEscudo) estela.style.border = "3px solid #00bfff";
+        gameContainer.appendChild(estela);
+        setTimeout(() => estela.remove(), 250);
+    }
+
+    function actualizarPosicionJugador() {
+        const posicionAnterior = jugador.style.left;
+        jugador.style.left = posicionesCarril[carrilActual] + "%";
+        
+        // Si ya tenía posición asignada y cambió, disparamos la estela
+        if (posicionAnterior && posicionAnterior !== jugador.style.left) {
+            crearEstela(posicionAnterior);
+        }
+    }
+    actualizarPosicionJugador(); 
+
+    // --- EFECTO TEXTO FLOTANTE ---
+    function lanzarTextoFlotante(texto, color, yPos) {
+        const divTxt = document.createElement('div');
+        divTxt.classList.add('texto-flotante');
+        divTxt.innerText = texto;
+        divTxt.style.color = color;
+        divTxt.style.left = posicionesCarril[carrilActual] + "%";
+        divTxt.style.top = yPos + "px";
+        gameContainer.appendChild(divTxt);
+        setTimeout(() => divTxt.remove(), 600);
+    }
+
+    // --- LÍNEAS DE VELOCIDAD DE FONDO ---
+    function crearLineasVelocidad() {
+        for(let i=0; i<12; i++) {
+            const linea = document.createElement('div');
+            linea.classList.add('linea-velocidad');
+            resetearLinea(linea);
+            linea.style.top = Math.random() * gameContainer.offsetHeight + "px";
+            gameContainer.appendChild(linea);
+            listaLineas.push(linea);
+        }
+    }
+    
+    function resetearLinea(linea) {
+        linea.style.left = Math.random() * 100 + "%";
+        linea.style.top = "-120px";
+        linea.style.height = (Math.random() * 80 + 40) + "px";
+    }
+
+    // --- CONTROLES MÓVILES E HÍBRIDOS ---
+    function manejarEntrada(clientX) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        if (!juegoActActive) return;
 
         const anchoPantalla = gameContainer.offsetWidth;
-        const clickX = e.clientX - gameContainer.getBoundingClientRect().left;
+        const clickX = clientX - gameContainer.getBoundingClientRect().left;
 
         if (clickX < anchoPantalla / 2) {
-            // Tocó lado izquierdo
             if (carrilActual > 0) carrilActual--;
         } else {
-            // Tocó lado derecho
             if (carrilActual < 2) carrilActual++;
         }
         actualizarPosicionJugador();
+    }
+
+    let juegoActActive = true; 
+
+    gameContainer.addEventListener('touchstart', (e) => {
+        e.preventDefault(); 
+        manejarEntrada(e.touches[0].clientX);
+    }, { passive: false });
+
+    gameContainer.addEventListener('mousedown', (e) => {
+        manejarEntrada(e.clientX);
     });
 
-    // Soporte también para jugar con las flechas del teclado en PC
     window.addEventListener('keydown', (e) => {
-        if (!juegoActivo) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        if (!juegoActActive) return;
         if (e.key === "ArrowLeft" && carrilActual > 0) carrilActual--;
         if (e.key === "ArrowRight" && carrilActual < 2) carrilActual++;
         actualizarPosicionJugador();
     });
 
-
-    // --- LÓGICA DE OBSTÁCULOS ---
-    function crearObstaculo() {
-        if (!juegoActivo) return;
+    // --- GENERADOR RANDOM DE ELEMENTOS ---
+    function crearElemento() {
+        if (!juegoActActive) return;
 
         const carrilAzar = Math.floor(Math.random() * 3);
-        const nuevoObstaculo = document.createElement('div');
-        nuevoObstaculo.classList.add('obstaculo');
-        nuevoObstaculo.style.left = posicionesCarril[carrilAzar] + "%";
-        nuevoObstaculo.style.top = "-60px"; // Empieza arriba oculto
+        const nuevoElem = document.createElement('div');
         
-        // Guardamos su información en un objeto lógico
-        const infoObstaculo = {
-            elemento: nuevoObstaculo,
+        const azarTipo = Math.random();
+        let tipo = 'obstaculo';
+
+        if (azarTipo < 0.72) {
+            nuevoElem.classList.add('obstaculo');
+            tipo = 'obstaculo';
+        } else if (azarTipo < 0.93) {
+            nuevoElem.classList.add('moneda');
+            tipo = 'moneda';
+        } else {
+            nuevoElem.classList.add('escudo-item');
+            tipo = 'escudo';
+        }
+
+        nuevoElem.style.left = posicionesCarril[carrilAzar] + "%";
+        nuevoElem.style.top = "-60px"; 
+        
+        const infoElemento = {
+            elemento: nuevoElem,
             carril: carrilAzar,
-            y: -60
+            tipo: tipo,
+            y: -60,
+            nearMissRegistrado: false // Bandera para que el Near Miss ocurra solo una vez por bloque
         };
 
-        gameContainer.appendChild(nuevoObstaculo);
-        listaObstaculos.push(infoObstaculo);
+        gameContainer.appendChild(nuevoElem);
+        listaElementos.push(infoElemento);
     }
 
-    // Iniciar el generador de obstáculos
     function iniciarGenerador() {
-        bucleObstaculos = setInterval(crearObstaculo, tiempoAparicion);
+        clearInterval(bucleElementos);
+        bucleElementos = setInterval(crearElemento, tiempoAparicion);
     }
-
 
     // --- BUCLE PRINCIPAL DEL JUEGO (FRAME POR FRAME) ---
     function juegoLoop() {
-        if (!juegoActivo) return;
+        if (!juegoActActive) return;
 
-        // Alto del contenedor y posición Y del jugador
         const altoContenedor = gameContainer.offsetHeight;
-        const jugadorY = altoContenedor - 40 - 60; // bottom + altura del jugador
+        const jugadorY = altoContenedor - 50 - 55; 
 
-        for (let i = listaObstaculos.length - 1; i >= 0; i--) {
-            let obs = listaObstaculos[i];
-            obs.y += velocidadObstaculos;
-            obs.elemento.style.top = obs.y + "px";
+        // 1. Mover líneas de velocidad (Fondo)
+        for(let i=0; i<listaLineas.length; i++) {
+            let linea = listaLineas[i];
+            let topActual = parseFloat(linea.style.top);
+            // Las líneas van el doble de rápido para dar sensación real de vértigo
+            topActual += (velocidadObjetos * 1.8); 
+            linea.style.top = topActual + "px";
+            if(topActual > altoContenedor) {
+                resetearLinea(linea);
+            }
+        }
 
-            // CONTROL DE COLISIÓN
-            // Si el bloque llega a la altura Y del jugador
-            if (obs.y + 60 >= jugadorY && obs.y <= jugadorY + 60) {
-                // Y además está en el mismo carril
-                if (obs.carril === carrilActual) {
-                    gameOver();
-                    return;
+        // 2. Mover obstáculos e ítems
+        for (let i = listaElementos.length - 1; i >= 0; i--) {
+            let obj = listaElementos[i];
+            obj.y += velocidadObjetos;
+            obj.elemento.style.top = obj.y + "px";
+
+            // MECÁNICA: DETECTAR "NEAR MISS" (CASI CHOQUE)
+            if (obj.tipo === 'obstaculo' && !obj.nearMissRegistrado) {
+                // Si el bloque está pasando exactamente al lado del jugador verticalmente
+                if (obj.y + 55 >= jugadorY && obj.y <= jugadorY + 55) {
+                    // Y está en un carril contiguo (diferencia absoluta de 1 carril)
+                    if (Math.abs(obj.carril - carrilActual) === 1) {
+                        obj.nearMissRegistrado = true;
+                        puntos += 25; // Bonus por valiente
+                        scoreText.innerText = puntos;
+                        reproducirSonido('near_miss');
+                        lanzarTextoFlotante('¡VALIENTE! +25', '#ff9900', jugadorY - 20);
+                        revisarCambioNivel();
+                    }
                 }
             }
 
-            // Si el bloque sale por abajo de la pantalla
-            if (obs.y > altoContenedor) {
-                obs.elemento.remove(); // Lo borra visualmente
-                listaObstaculos.splice(i, 1); // Lo borra del arreglo
-                puntos += 10; // Suma puntos por esquivar
-                scoreText.innerText = puntos;
+            // DETECTAR COLISIONES DIRECTAS
+            if (obj.y + 55 >= jugadorY && obj.y + 10 <= jugadorY + 55) {
+                if (obj.carril === carrilActual) {
+                    
+                    if (obj.tipo === 'obstaculo') {
+                        if (tieneEscudo) {
+                            tieneEscudo = false;
+                            jugador.classList.remove('protegido');
+                            reproducirSonido('escudo_break');
+                            lanzarTextoFlotante('ESCUDO ROTO', '#00bfff', jugadorY - 20);
+                            
+                            flashLayer.classList.add('flash');
+                            setTimeout(() => flashLayer.classList.remove('flash'), 200);
 
-                // Dificultad progresiva: aumenta velocidad cada 100 puntos
-                if (puntos % 100 === 0) {
-                    velocidadObstaculos += 0.5;
+                            obj.elemento.remove();
+                            listaElementos.splice(i, 1);
+                        } else {
+                            gameOver();
+                            return;
+                        }
+                    } 
+                    else if (obj.tipo === 'moneda') {
+                        monedasConsecutivas++;
+                        
+                        // Sistema de Combos de Monedas
+                        if (monedasConsecutivas >= 6) {
+                            multiplicadorCombo = 3;
+                            comboBadge.style.backgroundColor = "#ff3366";
+                            comboBadge.style.color = "#fff";
+                            comboBadge.style.boxShadow = "0 0 15px #ff3366";
+                        } else if (monedasConsecutivas >= 3) {
+                            multiplicadorCombo = 2;
+                            comboBadge.style.backgroundColor = "#ffd700";
+                            comboBadge.style.color = "#000";
+                            comboBadge.style.boxShadow = "0 0 10px #ffd700";
+                        } else {
+                            multiplicadorCombo = 1;
+                        }
+
+                        // Mostrar medalla de combo si corresponde
+                        if(multiplicadorCombo > 1) {
+                            comboBadge.innerText = `Combo x${multiplicadorCombo}`;
+                            comboBadge.style.display = "inline-block";
+                            // Pequeño brinco visual en el badge
+                            comboBadge.style.transform = "scale(1.2)";
+                            setTimeout(() => comboBadge.style.transform = "scale(1)", 100);
+                        }
+
+                        puntos += (50 * multiplicadorCombo); 
+                        scoreText.innerText = puntos;
+                        reproducirSonido('moneda');
+                        
+                        lanzarTextoFlotante(`+${50 * multiplicadorCombo}`, '#ffd700', jugadorY - 15);
+                        
+                        obj.elemento.remove();
+                        listaElementos.splice(i, 1);
+                        revisarCambioNivel();
+                    } 
+                    else if (obj.tipo === 'escudo') {
+                        tieneEscudo = true;
+                        jugador.classList.add('protegido');
+                        reproducirSonido('escudo_up');
+                        lanzarTextoFlotante('ESCUDO ACTIVO', '#e0ffff', jugadorY - 20);
+                        obj.elemento.remove();
+                        listaElementos.splice(i, 1);
+                    }
                 }
+            }
+
+            // CUANDO SALEN POR DEBAJO DE LA PANTALLA
+            if (obj.y > altoContenedor) {
+                obj.elemento.remove();
+                
+                if (obj.tipo === 'obstaculo') {
+                    puntos += 10;
+                    scoreText.innerText = puntos;
+                    reproducirSonido('punto');
+                    revisarCambioNivel();
+                } 
+                // MECÁNICA DE COMBO ROTO: Si dejas pasar una moneda, el combo vuelve a cero
+                else if (obj.tipo === 'moneda') {
+                    if (monedasConsecutivas > 0) {
+                        monedasConsecutivas = 0;
+                        multiplicadorCombo = 1;
+                        comboBadge.style.display = "none";
+                        lanzarTextoFlotante('COMBO ROTO', '#ff3366', 120);
+                    }
+                }
+                
+                listaElementos.splice(i, 1);
             }
         }
 
         requestAnimationFrame(juegoLoop);
     }
 
+    // --- ADAPTACIÓN DE DIFICULTAD Y NIVELES DINÁMICOS ---
+    function revisarCambioNivel() {
+        let nuevoNivelCalculado = Math.floor(puntos / 500) + 1;
+        
+        if (nuevoNivelCalculado > nivelActual) {
+            nivelActual = nuevoNivelCalculado;
+            levelText.innerText = nivelActual;
+            
+            // Subir velocidad y disminuir tiempo de spawn
+            velocidadObjetos += 0.9;
+            if (tiempoAparicion > 400) {
+                tiempoAparicion -= 100;
+                iniciarGenerador();
+            }
+            
+            reproducirSonido('nivel');
+            
+            // Cambiar color de fondo temático de nivel
+            const colorIndex = (nivelActual - 1) % coloresNiveles.length;
+            gameContainer.style.backgroundColor = coloresNiveles[colorIndex];
+            
+            // Destello de cambio de nivel
+            flashLayer.style.backgroundColor = "rgba(255,255,255,0.8)";
+            flashLayer.classList.add('flash');
+            setTimeout(() => {
+                flashLayer.classList.remove('flash');
+                flashLayer.style.backgroundColor = "transparent";
+            }, 400);
+        }
+    }
 
-    // --- FIN DEL JUEGO Y REINICIO ---
     function gameOver() {
-        juegoActivo = false;
-        clearInterval(bucleObstaculos);
+        juegoActActive = false;
+        clearInterval(bucleElementos);
+        
+        reproducirSonido('choque');
+        gameContainer.classList.add('shake');
+        comboBadge.style.display = "none";
         
         if (puntos > record) {
             record = puntos;
@@ -260,34 +661,44 @@
         }
 
         finalScoreText.innerText = puntos;
-        gameOverScreen.style.display = "flex";
+        
+        setTimeout(() => {
+            gameOverScreen.style.display = "flex";
+        }, 400);
     }
 
     function reiniciarJuego() {
-        // Limpiar obstáculos viejos
-        listaObstaculos.forEach(obs => obs.elemento.remove());
-        listaObstaculos = [];
+        listaElementos.forEach(obj => obj.elemento.remove());
+        listaElementos = [];
 
-        // Resetear variables
         puntos = 0;
+        nivelActual = 1;
+        monedasConsecutivas = 0;
+        multiplicadorCombo = 1;
+        tieneEscudo = false;
+        
         scoreText.innerText = puntos;
+        levelText.innerText = nivelActual;
         carrilActual = 1;
-        velocidadObstaculos = 5;
+        velocidadObjetos = 5;
+        tiempoAparicion = 1100;
+        
+        jugador.className = ""; 
+        gameContainer.style.backgroundColor = coloresNiveles[0];
         actualizarPosicionJugador();
         
-        // Ocultar pantalla de Game Over y arrancar
+        gameContainer.classList.remove('shake');
         gameOverScreen.style.display = "none";
-        juegoActivo = true;
         
-        clearInterval(bucleObstaculos);
+        juegoActActive = true;
         iniciarGenerador();
         juegoLoop();
     }
 
-    // Arrancar el juego por primera vez
+    // Arrancar ambiente del juego
+    crearLineasVelocidad();
     iniciarGenerador();
     juegoLoop();
-
 </script>
 </body>
 </html>
