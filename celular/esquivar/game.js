@@ -403,13 +403,21 @@ function gameOver() {
         setTimeout(() => {
             let nombre = prompt("¡NUEVO RÉCORD! Escribe tu nombre para la tabla de clasificación:");
             if (nombre) {
-                window.db.ref('ranking/').push({
-                    nombre: nombre,
-                    puntos: record,
-                    fecha: new Date().toLocaleDateString()
-                }, () => {
+                // Limpiamos el nombre para que sea una clave válida en Firebase
+                let nombreKey = nombre.trim().replace(/\s+/g, '_').replace(/[.#$\[\]]/g, '');
+                
+                if (nombreKey !== "") {
+                    // Usamos set() en lugar de push() para sobreescribir si el nombre ya existe
+                    window.db.ref('ranking/' + nombreKey).set({
+                        nombre: nombre.trim(),
+                        puntos: record,
+                        fecha: new Date().toLocaleDateString()
+                    }, () => {
+                        mostrarRanking();
+                    });
+                } else {
                     mostrarRanking();
-                });
+                }
             } else {
                 mostrarRanking();
             }
@@ -451,11 +459,10 @@ function reiniciarJuego() {
     juegoLoop();
 }
 
-// Hacemos que reiniciarJuego sea globalmente accesible por si acaso
 window.reiniciarJuego = reiniciarJuego;
 
 // --- DISPARADORES DE INICIO ---
 crearLineasVelocidad();
 iniciarGenerador();
 juegoLoop();
-mostrarRanking(); // Carga el ranking inmediatamente al abrir la pantalla
+mostrarRanking();
