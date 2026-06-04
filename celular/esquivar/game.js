@@ -225,33 +225,16 @@ function crearElemento() {
     const azarTipo = Math.random();
     let tipo = 'obstaculo';
 
+    // Siempre usamos .obstaculo-pincho para evitar fallos
     if (azarTipo < 0.72) {
+        nuevoElem.classList.add('obstaculo-pincho');
         tipo = 'obstaculo';
     } else if (azarTipo < 0.93) {
+        nuevoElem.classList.add('moneda');
         tipo = 'moneda';
     } else {
-        tipo = 'escudo';
-    }
-
-    // Algoritmo anti-bloqueo total
-    if (tipo === 'obstaculo') {
-        let carrilesOcupados = new Set();
-        listaElementos.forEach(obj => {
-            if (obj.tipo === 'obstaculo' && obj.y < 240) {
-                carrilesOcupados.add(obj.carril);
-            }
-        });
-        if (carrilesOcupados.size >= 2 && !carrilesOcupados.has(carrilAzar)) {
-            tipo = Math.random() < 0.75 ? 'moneda' : 'escudo';
-        }
-    }
-
-    if (tipo === 'obstaculo') {
-        nuevoElem.classList.add('obstaculo');
-    } else if (tipo === 'moneda') {
-        nuevoElem.classList.add('moneda');
-    } else {
         nuevoElem.classList.add('escudo-item');
+        tipo = 'escudo';
     }
 
     nuevoElem.style.left = posicionesCarril[carrilAzar] + "%";

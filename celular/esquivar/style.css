@@ -97,14 +97,24 @@ body {
 /* =========================================
    4. ELEMENTOS DEL JUEGO
    ========================================= */
-.obstaculo {
+.obstaculo-pincho {
     position: absolute;
-    width: 55px;
-    height: 55px;
+    width: 60px;
+    height: 60px;
     background-color: #ff3366;
-    border-radius: 12px;
+    
+    /* 24 Puntas calculadas para simetría circular perfecta */
+    clip-path: polygon(
+        50% 0%, 60% 5%, 70% 0%, 75% 10%, 85% 10%, 88% 20%, 95% 25%, 
+        95% 35%, 100% 45%, 95% 55%, 95% 65%, 88% 75%, 85% 80%, 75% 80%, 
+        70% 90%, 60% 85%, 50% 90%, 40% 85%, 30% 90%, 25% 80%, 15% 80%, 
+        12% 75%, 5% 65%, 5% 55%, 0% 45%, 5% 35%, 5% 25%, 12% 20%, 15% 10%, 
+        25% 10%, 30% 0%, 40% 5%
+    );
+    
+    animation: girarPincho 4s linear infinite;
     transform: translateX(-50%);
-    box-shadow: 0 0 15px rgba(255, 51, 102, 0.5);
+    box-shadow: 0 0 15px #ff3366;
     z-index: 4;
 }
 
