@@ -374,7 +374,7 @@ function revisarCambioNivel() {
 // --- CONEXIÓN DE ENTRADA/SALIDA FIREBASE REALTIME ---
 function mostrarRanking() {
     rankingDisplay.innerHTML = "Cargando Líderes Mundiales...";
-    db.ref('ranking/').orderByChild('puntos').limitToLast(5).once('value', (snapshot) => {
+    window.db.ref('ranking/').orderByChild('puntos').limitToLast(5).once('value', (snapshot) => {
         let items = [];
         snapshot.forEach((child) => { items.push(child.val()); });
         items.sort((a, b) => b.puntos - a.puntos); 
@@ -403,12 +403,11 @@ function gameOver() {
         setTimeout(() => {
             let nombre = prompt("¡NUEVO RÉCORD! Escribe tu nombre para la tabla de clasificación:");
             if (nombre) {
-                db.ref('ranking/').push({
+                window.db.ref('ranking/').push({
                     nombre: nombre,
                     puntos: record,
                     fecha: new Date().toLocaleDateString()
                 }, () => {
-                    // Refresca el ranking tras guardar exitosamente
                     mostrarRanking();
                 });
             } else {
@@ -452,7 +451,11 @@ function reiniciarJuego() {
     juegoLoop();
 }
 
+// Hacemos que reiniciarJuego sea globalmente accesible por si acaso
+window.reiniciarJuego = reiniciarJuego;
+
 // --- DISPARADORES DE INICIO ---
 crearLineasVelocidad();
 iniciarGenerador();
 juegoLoop();
+mostrarRanking(); // Carga el ranking inmediatamente al abrir la pantalla

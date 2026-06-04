@@ -10,4 +10,5 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+// Usamos window.db para asegurar que game.js tenga acceso total al estar en archivos separados
+window.db = firebase.database();
