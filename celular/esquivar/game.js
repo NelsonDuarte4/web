@@ -2,6 +2,7 @@
 const jugador = document.getElementById('jugador');
 const gameContainer = document.getElementById('game-container');
 const flashLayer = document.getElementById('flash-layer');
+const fogOfWar = document.getElementById('fog-of-war');
 const scoreText = document.getElementById('score');
 const levelText = document.getElementById('level-txt');
 const highscoreText = document.getElementById('highscore');
@@ -10,7 +11,7 @@ const gameOverScreen = document.getElementById('game-over-screen');
 const finalScoreText = document.getElementById('final-score');
 const rankingDisplay = document.getElementById('ranking-display');
 
-const posicionesCarril = [16.66, 50, 83.33]; 
+const posicionesCarril = [16.666, 50, 83.333]; 
 let carrilActual = 1; 
 
 let puntos = 0;
@@ -96,19 +97,54 @@ function reproducirSonido(tipo) {
     }
 }
 
-// --- EFECTOS VISUALES ---
+// --- EFECTOS VISUALES MEJORADOS ---
+function crearParticulas(xPercentage, yPixels, color) {
+    // Calculamos el x real en píxeles basado en su porcentaje del contenedor
+    const containerWidth = gameContainer.offsetWidth;
+    const xPixels = (xPercentage / 100) * containerWidth;
+
+    for (let i = 0; i < 10; i++) {
+        const particula = document.createElement('div');
+        particula.classList.add('particula');
+        particula.style.backgroundColor = color;
+        particula.style.left = xPixels + 'px';
+        particula.style.top = yPixels + 'px';
+        
+        // Explosión física con mayor rango dinámico
+        const moveX = (Math.random() - 0.5) * 140;
+        const moveY = (Math.random() - 0.5) * 140;
+        particula.style.setProperty('--moveX', moveX + 'px');
+        particula.style.setProperty('--moveY', moveY + 'px');
+        
+        gameContainer.appendChild(particula);
+        setTimeout(() => particula.remove(), 450);
+    }
+}
+
 function crearEstela(posicionXOriginal) {
     const estela = document.createElement('div');
     estela.classList.add('ghost-trail');
     estela.style.left = posicionXOriginal;
     if (tieneEscudo) estela.style.border = "3px solid #00bfff";
     gameContainer.appendChild(estela);
-    setTimeout(() => estela.remove(), 250);
+    setTimeout(() => estela.remove(), 200);
 }
 
 function actualizarPosicionJugador() {
     const posicionAnterior = jugador.style.left;
     jugador.style.left = posicionesCarril[carrilActual] + "%";
+    
+    // Pescamos la dirección y aplicamos la inclinación limpia (Juice)
+    if (posicionAnterior && juegoActivo) {
+        const diff = parseFloat(jugador.style.left) - parseFloat(posicionAnterior);
+        if (diff !== 0) {
+            const angulo = diff > 0 ? 18 : -18; 
+            jugador.style.transform = `translateX(-50%) rotate(${angulo}deg)`;
+            setTimeout(() => {
+                if (juegoActivo) jugador.style.transform = "translateX(-50%) rotate(0deg)";
+            }, 150);
+        }
+    }
     
     if (posicionAnterior && posicionAnterior !== jugador.style.left) {
         crearEstela(posicionAnterior);
@@ -124,7 +160,7 @@ function lanzarTextoFlotante(texto, color, yPos) {
     divTxt.style.left = posicionesCarril[carrilActual] + "%";
     divTxt.style.top = yPos + "px";
     gameContainer.appendChild(divTxt);
-    setTimeout(() => divTxt.remove(), 600);
+    setTimeout(() => divTxt.remove(), 550);
 }
 
 function crearLineasVelocidad() {
@@ -144,7 +180,7 @@ function resetearLinea(linea) {
     linea.style.height = (Math.random() * 80 + 40) + "px";
 }
 
-// --- CONTROLES (MÓVIL Y TECLADO) ---
+// --- CONTROLES ---
 function manejarEntrada(clientX) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     if (!juegoActivo) return;
@@ -179,7 +215,7 @@ window.addEventListener('keydown', (e) => {
     actualizarPosicionJugador();
 });
 
-// --- LÓGICA PRINCIPAL DEL BUCLE ---
+// --- BUCLE PRINCIPAL Y GESTIÓN DE ELEMENTOS ---
 function crearElemento() {
     if (!juegoActivo) return;
 
@@ -190,14 +226,32 @@ function crearElemento() {
     let tipo = 'obstaculo';
 
     if (azarTipo < 0.72) {
-        nuevoElem.classList.add('obstaculo');
         tipo = 'obstaculo';
     } else if (azarTipo < 0.93) {
-        nuevoElem.classList.add('moneda');
         tipo = 'moneda';
     } else {
-        nuevoElem.classList.add('escudo-item');
         tipo = 'escudo';
+    }
+
+    // Algoritmo anti-bloqueo total
+    if (tipo === 'obstaculo') {
+        let carrilesOcupados = new Set();
+        listaElementos.forEach(obj => {
+            if (obj.tipo === 'obstaculo' && obj.y < 240) {
+                carrilesOcupados.add(obj.carril);
+            }
+        });
+        if (carrilesOcupados.size >= 2 && !carrilesOcupados.has(carrilAzar)) {
+            tipo = Math.random() < 0.75 ? 'moneda' : 'escudo';
+        }
+    }
+
+    if (tipo === 'obstaculo') {
+        nuevoElem.classList.add('obstaculo');
+    } else if (tipo === 'moneda') {
+        nuevoElem.classList.add('moneda');
+    } else {
+        nuevoElem.classList.add('escudo-item');
     }
 
     nuevoElem.style.left = posicionesCarril[carrilAzar] + "%";
@@ -241,6 +295,7 @@ function juegoLoop() {
         obj.y += velocidadObjetos;
         obj.elemento.style.top = obj.y + "px";
 
+        // Lógica de evasión (Near Miss) perfectamente calibrada al centro
         if (obj.tipo === 'obstaculo' && !obj.nearMissRegistrado) {
             if (obj.y + 55 >= jugadorY && obj.y <= jugadorY + 55) {
                 if (Math.abs(obj.carril - carrilActual) === 1) {
@@ -254,7 +309,8 @@ function juegoLoop() {
             }
         }
 
-        if (obj.y + 55 >= jugadorY && obj.y + 10 <= jugadorY + 55) {
+        // Detección precisa de impactos corporales en el eje Y
+        if (obj.y + 50 >= jugadorY && obj.y <= jugadorY + 50) {
             if (obj.carril === carrilActual) {
                 
                 if (obj.tipo === 'obstaculo') {
@@ -264,6 +320,8 @@ function juegoLoop() {
                         reproducirSonido('escudo_break');
                         lanzarTextoFlotante('ESCUDO ROTO', '#00bfff', jugadorY - 20);
                         
+                        crearParticulas(posicionesCarril[obj.carril], obj.y + 25, '#00bfff');
+
                         flashLayer.classList.add('flash');
                         setTimeout(() => flashLayer.classList.remove('flash'), 200);
 
@@ -304,7 +362,11 @@ function juegoLoop() {
                     
                     lanzarTextoFlotante(`+${50 * multiplicadorCombo}`, '#ffd700', jugadorY - 15);
                     
-                    obj.elemento.remove();
+                    // CORREGIDO: Animación pulida pop en moneda antes de sacarla del DOM
+                    const elMoneda = obj.elemento;
+                    elMoneda.classList.add('moneda-recogida');
+                    setTimeout(() => { if(elMoneda.parentNode) elMoneda.remove(); }, 250);
+                    
                     listaElementos.splice(i, 1);
                     revisarCambioNivel();
                 } 
@@ -362,24 +424,35 @@ function revisarCambioNivel() {
         const colorIndex = (nivelActual - 1) % coloresNiveles.length;
         gameContainer.style.backgroundColor = coloresNiveles[colorIndex];
         
-        flashLayer.style.backgroundColor = "rgba(255,255,255,0.8)";
+        if (fogOfWar) {
+            fogOfWar.style.background = `linear-gradient(to bottom, ${coloresNiveles[colorIndex]} 20%, transparent)`;
+        }
+        
+        flashLayer.style.backgroundColor = "rgba(255,255,255,0.7)";
         flashLayer.classList.add('flash');
         setTimeout(() => {
             flashLayer.classList.remove('flash');
             flashLayer.style.backgroundColor = "transparent";
-        }, 400);
+        }, 350);
     }
 }
 
-// --- CONEXIÓN DE ENTRADA/SALIDA FIREBASE REALTIME ---
+// --- CONEXIÓN FIREBASE REALTIME ---
 function mostrarRanking() {
     rankingDisplay.innerHTML = "Cargando Líderes Mundiales...";
-    window.db.ref('ranking/').orderByChild('puntos').limitToLast(5).once('value', (snapshot) => {
+    db.ref('ranking/').orderByChild('puntos').limitToLast(5).once('value', (snapshot) => {
         let items = [];
         snapshot.forEach((child) => { items.push(child.val()); });
         items.sort((a, b) => b.puntos - a.puntos); 
+        
+        // CORREGIDO: Inyección HTML estructurada en filas limpias alineadas a la izquierda
         rankingDisplay.innerHTML = "<h3>🏆 TOP 5 GLOBAL</h3>" + 
-            items.map((jugador, i) => `<p>${i+1}. ${jugador.nombre} — ${jugador.puntos} pts</p>`).join('');
+            items.map((j, i) => `
+                <div class="ranking-fila">
+                    <span class="ranking-pos-nombre">${i+1}. ${j.nombre}</span>
+                    <span class="ranking-puntos">${j.puntos} pts</span>
+                </div>
+            `).join('');
     }).catch(err => {
         rankingDisplay.innerHTML = "Error al cargar clasificación.";
     });
@@ -392,6 +465,10 @@ function gameOver() {
     reproducirSonido('choque');
     gameContainer.classList.add('shake');
     comboBadge.style.display = "none";
+    jugador.style.transform = "translateX(-50%) rotate(0deg)";
+    
+    // Explosión masiva roja al perder alineada al centro del impacto
+    crearParticulas(posicionesCarril[carrilActual], gameContainer.offsetHeight - 105, '#ff3366');
     
     finalScoreText.innerText = puntos;
 
@@ -403,12 +480,10 @@ function gameOver() {
         setTimeout(() => {
             let nombre = prompt("¡NUEVO RÉCORD! Escribe tu nombre para la tabla de clasificación:");
             if (nombre) {
-                // Limpiamos el nombre para que sea una clave válida en Firebase
                 let nombreKey = nombre.trim().replace(/\s+/g, '_').replace(/[.#$\[\]]/g, '');
                 
                 if (nombreKey !== "") {
-                    // Usamos set() en lugar de push() para sobreescribir si el nombre ya existe
-                    window.db.ref('ranking/' + nombreKey).set({
+                    db.ref('ranking/' + nombreKey).set({
                         nombre: nombre.trim(),
                         puntos: record,
                         fecha: new Date().toLocaleDateString()
@@ -448,7 +523,10 @@ function reiniciarJuego() {
     tiempoAparicion = 1100;
     
     jugador.className = ""; 
+    jugador.style.transform = "translateX(-50%) rotate(0deg)"; 
     gameContainer.style.backgroundColor = coloresNiveles[0];
+    if (fogOfWar) fogOfWar.style.background = `linear-gradient(to bottom, ${coloresNiveles[0]} 20%, transparent)`;
+    
     actualizarPosicionJugador();
     
     gameContainer.classList.remove('shake');
