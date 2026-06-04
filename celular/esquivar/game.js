@@ -106,7 +106,7 @@ function crearParticulas(xPercentage, yPixels, color) {
         const particula = document.createElement('div');
         particula.classList.add('particula');
         particula.style.backgroundColor = color;
-        particula.style.boxShadow = `0 0 10px ${color}`; // Añadido brillo a las partículas
+        particula.style.boxShadow = `0 0 10px ${color}`; 
         particula.style.left = xPixels + 'px';
         particula.style.top = yPixels + 'px';
         
@@ -124,7 +124,6 @@ function actualizarPosicionJugador() {
     const posicionAnterior = jugador.style.left;
     jugador.style.left = posicionesCarril[carrilActual] + "%";
     
-    // Inclinación dinámica aerodinámica
     if (posicionAnterior && juegoActivo) {
         const diff = parseFloat(jugador.style.left) - parseFloat(posicionAnterior);
         if (diff !== 0) {
@@ -197,13 +196,13 @@ function manejarEntrada(clientX) {
 }
 
 gameContainer.addEventListener('touchstart', (e) => {
-    if (e.target.tagName === 'BUTTON') return; 
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return; 
     e.preventDefault(); 
     manejarEntrada(e.touches[0].clientX);
 }, { passive: false });
 
 gameContainer.addEventListener('mousedown', (e) => {
-    if (e.target.tagName === 'BUTTON') return;
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
     manejarEntrada(e.clientX);
 });
 
@@ -225,7 +224,6 @@ function crearElemento() {
     const azarTipo = Math.random();
     let tipo = 'obstaculo';
 
-    // Siempre usa el diseño del sello dentado
     if (azarTipo < 0.72) {
         nuevoElem.classList.add('obstaculo-pincho');
         tipo = 'obstaculo';
@@ -278,7 +276,6 @@ function juegoLoop() {
         obj.y += velocidadObjetos;
         obj.elemento.style.top = obj.y + "px";
 
-        // Lógica Near Miss
         if (obj.tipo === 'obstaculo' && !obj.nearMissRegistrado) {
             if (obj.y + 55 >= jugadorY && obj.y <= jugadorY + 55) {
                 if (Math.abs(obj.carril - carrilActual) === 1) {
@@ -292,7 +289,6 @@ function juegoLoop() {
             }
         }
 
-        // Colisiones
         if (obj.y + 50 >= jugadorY && obj.y <= jugadorY + 50) {
             if (obj.carril === carrilActual) {
                 
@@ -358,7 +354,6 @@ function juegoLoop() {
                     reproducirSonido('escudo_up');
                     lanzarTextoFlotante('ESCUDO ACTIVO', '#e0ffff', jugadorY - 20);
                     
-                    // Flash sutil al agarrar escudo
                     flashLayer.style.backgroundColor = "rgba(0, 191, 255, 0.4)";
                     flashLayer.classList.add('flash');
                     setTimeout(() => {
@@ -454,39 +449,17 @@ function gameOver() {
     
     reproducirSonido('choque');
     gameContainer.classList.add('shake');
-    comboBadge.style.display = "none";
-    jugador.style.transform = "translateX(-50%) rotate(0deg)";
-    
-    crearParticulas(posicionesCarril[carrilActual], gameContainer.offsetHeight - 105, '#ff3366');
-    
     finalScoreText.innerText = puntos;
 
     if (puntos > record) {
         record = puntos;
         localStorage.setItem('record_esquiva', record);
         highscoreText.innerText = record;
-
-        setTimeout(() => {
-            let nombre = prompt("¡NUEVO RÉCORD! Escribe tu nombre para la tabla de clasificación:");
-            if (nombre) {
-                let nombreKey = nombre.trim().replace(/\s+/g, '_').replace(/[.#$\[\]]/g, '');
-                
-                if (nombreKey !== "") {
-                    db.ref('ranking/' + nombreKey).set({
-                        nombre: nombre.trim(),
-                        puntos: record,
-                        fecha: new Date().toLocaleDateString()
-                    }, () => {
-                        mostrarRanking();
-                    });
-                } else {
-                    mostrarRanking();
-                }
-            } else {
-                mostrarRanking();
-            }
-        }, 100); 
+        
+        // Muestra el cuadro integrado nativo para guardar
+        document.getElementById('registro-record').style.display = 'block';
     } else {
+        document.getElementById('registro-record').style.display = 'none';
         mostrarRanking();
     }
 
@@ -495,7 +468,34 @@ function gameOver() {
     }, 400);
 }
 
+function guardarPuntaje() {
+    const input = document.getElementById('nombre-input');
+    const nombre = input.value.trim();
+    
+    if (nombre === "") {
+        alert("Por favor, introduce un nombre.");
+        return;
+    }
+
+    let nombreKey = nombre.replace(/\s+/g, '_').replace(/[.#$\[\]]/g, '');
+    
+    db.ref('ranking/' + nombreKey).set({
+        nombre: nombre,
+        puntos: record,
+        fecha: new Date().toLocaleDateString()
+    }).then(() => {
+        document.getElementById('registro-record').style.display = 'none';
+        mostrarRanking();
+    }).catch(err => {
+        console.error("Error al guardar:", err);
+    });
+}
+
 function reiniciarJuego() {
+    // Limpia y restablece la caja de texto integrada
+    document.getElementById('registro-record').style.display = 'none';
+    document.getElementById('nombre-input').value = "";
+
     listaElementos.forEach(obj => obj.elemento.remove());
     listaElementos = [];
 
@@ -518,14 +518,16 @@ function reiniciarJuego() {
     
     actualizarPosicionJugador();
     
-    gameContainer.classList.remove('shake');
     gameOverScreen.style.display = "none";
-    
+    gameContainer.classList.remove('shake');
     juegoActivo = true;
     iniciarGenerador();
     juegoLoop();
+    mostrarRanking();
 }
 
+// Exponer funciones globales
+window.guardarPuntaje = guardarPuntaje;
 window.reiniciarJuego = reiniciarJuego;
 
 // --- DISPARADORES DE INICIO ---

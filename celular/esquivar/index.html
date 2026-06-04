@@ -36,6 +36,12 @@
             <h1>¡CRASH!</h1>
             <p style="margin-bottom: 20px; font-size: 1.2rem;">Puntaje final: <strong id="final-score">0</strong></p>
             
+            <div id="registro-record" style="display: none; width: 85%; max-width: 320px; text-align: center; margin-bottom: 15px;">
+                <p style="color: #ffd700; font-weight: bold; font-size: 1.1rem; margin-bottom: 8px; text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);">¡NUEVO RÉCORD GLOBAL!</p>
+                <input type="text" id="nombre-input" placeholder="Tu Nombre o Nick" maxlength="12">
+                <button id="btn-guardar" onclick="guardarPuntaje()">Guardar Récord</button>
+            </div>
+
             <div id="ranking-display"></div>
             
             <button onclick="reiniciarJuego()">Volver a intentar</button>

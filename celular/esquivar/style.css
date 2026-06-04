@@ -354,6 +354,31 @@ body {
     text-shadow: 0 0 15px #ff3366;
 }
 
+/* DISEÑO IN-GAME DEL BOTÓN Y EL INPUT DEL RÉCORD */
+#nombre-input {
+    width: 100%;
+    padding: 11px;
+    margin: 10px 0;
+    background: rgba(255, 255, 255, 0.06);
+    border: 2px solid #ffd700;
+    color: #fff;
+    text-align: center;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    outline: none;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.1);
+}
+
+#btn-guardar {
+    padding: 10px 22px !important;
+    font-size: 1rem !important;
+    background-color: #ffd700 !important;
+    color: #000 !important;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3) !important;
+    width: 100%;
+}
+
 #ranking-display {
     margin: 15px 0 25px 0;
     width: 85%;
