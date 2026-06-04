@@ -97,22 +97,21 @@ function reproducirSonido(tipo) {
     }
 }
 
-// --- EFECTOS VISUALES MEJORADOS ---
+// --- EFECTOS VISUALES ---
 function crearParticulas(xPercentage, yPixels, color) {
-    // Calculamos el x real en píxeles basado en su porcentaje del contenedor
     const containerWidth = gameContainer.offsetWidth;
     const xPixels = (xPercentage / 100) * containerWidth;
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 12; i++) {
         const particula = document.createElement('div');
         particula.classList.add('particula');
         particula.style.backgroundColor = color;
+        particula.style.boxShadow = `0 0 10px ${color}`; // Añadido brillo a las partículas
         particula.style.left = xPixels + 'px';
         particula.style.top = yPixels + 'px';
         
-        // Explosión física con mayor rango dinámico
-        const moveX = (Math.random() - 0.5) * 140;
-        const moveY = (Math.random() - 0.5) * 140;
+        const moveX = (Math.random() - 0.5) * 160;
+        const moveY = (Math.random() - 0.5) * 160;
         particula.style.setProperty('--moveX', moveX + 'px');
         particula.style.setProperty('--moveY', moveY + 'px');
         
@@ -121,24 +120,15 @@ function crearParticulas(xPercentage, yPixels, color) {
     }
 }
 
-function crearEstela(posicionXOriginal) {
-    const estela = document.createElement('div');
-    estela.classList.add('ghost-trail');
-    estela.style.left = posicionXOriginal;
-    if (tieneEscudo) estela.style.border = "3px solid #00bfff";
-    gameContainer.appendChild(estela);
-    setTimeout(() => estela.remove(), 200);
-}
-
 function actualizarPosicionJugador() {
     const posicionAnterior = jugador.style.left;
     jugador.style.left = posicionesCarril[carrilActual] + "%";
     
-    // Pescamos la dirección y aplicamos la inclinación limpia (Juice)
+    // Inclinación dinámica aerodinámica
     if (posicionAnterior && juegoActivo) {
         const diff = parseFloat(jugador.style.left) - parseFloat(posicionAnterior);
         if (diff !== 0) {
-            const angulo = diff > 0 ? 18 : -18; 
+            const angulo = diff > 0 ? 25 : -25; 
             jugador.style.transform = `translateX(-50%) rotate(${angulo}deg)`;
             setTimeout(() => {
                 if (juegoActivo) jugador.style.transform = "translateX(-50%) rotate(0deg)";
@@ -147,7 +137,16 @@ function actualizarPosicionJugador() {
     }
     
     if (posicionAnterior && posicionAnterior !== jugador.style.left) {
-        crearEstela(posicionAnterior);
+        const estela = document.createElement('div');
+        estela.classList.add('ghost-trail');
+        estela.style.left = posicionAnterior;
+        estela.style.transform = jugador.style.transform; 
+        if (tieneEscudo) {
+            estela.style.backgroundColor = "rgba(0, 191, 255, 0.4)";
+        }
+    
+        gameContainer.appendChild(estela);
+        setTimeout(() => estela.remove(), 250);
     }
 }
 actualizarPosicionJugador(); 
@@ -157,6 +156,7 @@ function lanzarTextoFlotante(texto, color, yPos) {
     divTxt.classList.add('texto-flotante');
     divTxt.innerText = texto;
     divTxt.style.color = color;
+    divTxt.style.textShadow = `0 0 8px ${color}`;
     divTxt.style.left = posicionesCarril[carrilActual] + "%";
     divTxt.style.top = yPos + "px";
     gameContainer.appendChild(divTxt);
@@ -225,7 +225,7 @@ function crearElemento() {
     const azarTipo = Math.random();
     let tipo = 'obstaculo';
 
-    // Siempre usamos .obstaculo-pincho para evitar fallos
+    // Siempre usa el diseño del sello dentado
     if (azarTipo < 0.72) {
         nuevoElem.classList.add('obstaculo-pincho');
         tipo = 'obstaculo';
@@ -278,7 +278,7 @@ function juegoLoop() {
         obj.y += velocidadObjetos;
         obj.elemento.style.top = obj.y + "px";
 
-        // Lógica de evasión (Near Miss) perfectamente calibrada al centro
+        // Lógica Near Miss
         if (obj.tipo === 'obstaculo' && !obj.nearMissRegistrado) {
             if (obj.y + 55 >= jugadorY && obj.y <= jugadorY + 55) {
                 if (Math.abs(obj.carril - carrilActual) === 1) {
@@ -292,7 +292,7 @@ function juegoLoop() {
             }
         }
 
-        // Detección precisa de impactos corporales en el eje Y
+        // Colisiones
         if (obj.y + 50 >= jugadorY && obj.y <= jugadorY + 50) {
             if (obj.carril === carrilActual) {
                 
@@ -301,7 +301,7 @@ function juegoLoop() {
                         tieneEscudo = false;
                         jugador.classList.remove('protegido');
                         reproducirSonido('escudo_break');
-                        lanzarTextoFlotante('ESCUDO ROTO', '#00bfff', jugadorY - 20);
+                        lanzarTextoFlotante('¡ESCUDO ROTO!', '#00bfff', jugadorY - 20);
                         
                         crearParticulas(posicionesCarril[obj.carril], obj.y + 25, '#00bfff');
 
@@ -345,7 +345,6 @@ function juegoLoop() {
                     
                     lanzarTextoFlotante(`+${50 * multiplicadorCombo}`, '#ffd700', jugadorY - 15);
                     
-                    // CORREGIDO: Animación pulida pop en moneda antes de sacarla del DOM
                     const elMoneda = obj.elemento;
                     elMoneda.classList.add('moneda-recogida');
                     setTimeout(() => { if(elMoneda.parentNode) elMoneda.remove(); }, 250);
@@ -358,6 +357,15 @@ function juegoLoop() {
                     jugador.classList.add('protegido');
                     reproducirSonido('escudo_up');
                     lanzarTextoFlotante('ESCUDO ACTIVO', '#e0ffff', jugadorY - 20);
+                    
+                    // Flash sutil al agarrar escudo
+                    flashLayer.style.backgroundColor = "rgba(0, 191, 255, 0.4)";
+                    flashLayer.classList.add('flash');
+                    setTimeout(() => {
+                        flashLayer.classList.remove('flash');
+                        flashLayer.style.backgroundColor = "transparent";
+                    }, 200);
+
                     obj.elemento.remove();
                     listaElementos.splice(i, 1);
                 }
@@ -428,7 +436,6 @@ function mostrarRanking() {
         snapshot.forEach((child) => { items.push(child.val()); });
         items.sort((a, b) => b.puntos - a.puntos); 
         
-        // CORREGIDO: Inyección HTML estructurada en filas limpias alineadas a la izquierda
         rankingDisplay.innerHTML = "<h3>🏆 TOP 5 GLOBAL</h3>" + 
             items.map((j, i) => `
                 <div class="ranking-fila">
@@ -450,7 +457,6 @@ function gameOver() {
     comboBadge.style.display = "none";
     jugador.style.transform = "translateX(-50%) rotate(0deg)";
     
-    // Explosión masiva roja al perder alineada al centro del impacto
     crearParticulas(posicionesCarril[carrilActual], gameContainer.offsetHeight - 105, '#ff3366');
     
     finalScoreText.innerText = puntos;

@@ -41,7 +41,6 @@ body {
     bottom: 0;
     width: 33.333%;
     z-index: 2;
-    /* CORREGIDO: Se eliminó la raya divisoria dashed molesta */
 }
 .carril:nth-child(1) { left: 0; }
 .carril:nth-child(2) { left: 33.333%; }
@@ -55,43 +54,85 @@ body {
 }
 
 /* =========================================
-   3. JUGADOR, JUICE Y ESTELA (CENTRADOS)
+   3. JUGADOR (NAVE VANGUARDIA PULSANTE)
    ========================================= */
 #jugador {
     position: absolute;
     bottom: 50px;
     width: 55px;
-    height: 55px;
+    height: 60px;
     background-color: #00ffcc;
-    border-radius: 12px;
-    /* CORREGIDO: Transform unificado para evitar bugs de centrado con la rotación */
-    transform: translateX(-50%) rotate(0deg);
-    box-shadow: 0 0 20px rgba(0, 255, 204, 0.6);
+    
+    /* Forma de triángulo apuntando hacia arriba */
+    clip-path: polygon(50% 0%, 100% 100%, 50% 80%, 0% 100%);
     z-index: 5;
     transition: left 0.15s cubic-bezier(0.25, 1, 0.5, 1), transform 0.15s ease-out;
+
+    /* Luz volumétrica que envuelve el triángulo */
+    filter: drop-shadow(0 0 8px rgba(0, 255, 204, 0.8)) drop-shadow(0 0 15px rgba(0, 255, 204, 0.4));
+    
+    /* Animación de motor encendido */
+    animation: latidoNave 1.5s infinite alternate ease-in-out;
 }
 
+@keyframes latidoNave {
+    from { filter: drop-shadow(0 0 5px rgba(0, 255, 204, 0.5)) brightness(1); }
+    to { filter: drop-shadow(0 0 15px rgba(0, 255, 204, 1)) brightness(1.2); }
+}
+
+/* =========================================
+   EFECTO DE ESCUDO MEJORADO (PLASMA ACTIVO)
+   ========================================= */
 #jugador.protegido {
-    border: 4px solid #00bfff;
-    box-shadow: 0 0 25px #00bfff, 0 0 10px #00ffcc;
-    background-color: #e0ffff;
+    /* Gradiente expansivo que simula el flujo de energía */
+    background: linear-gradient(0deg, #00ffff, #ffffff, #00bfff, #ffffff, #00ffff);
+    background-size: 100% 400%;
+    
+    /* El núcleo se vuelve más aerodinámico por la sobrecarga */
+    clip-path: polygon(50% 0%, 100% 100%, 50% 95%, 0% 100%);
+    
+    /* Triple capa de luz volumétrica (Núcleo blanco, aura cyan, destello azul) */
+    filter: drop-shadow(0 0 15px #00ffff) 
+            drop-shadow(0 0 30px #00bfff) 
+            drop-shadow(0 0 45px rgba(255, 255, 255, 0.6));
+    
+    /* Doble animación: Flujo de plasma (linear) y vibración de luz (alternate) */
+    animation: flujoEnergia 0.6s infinite linear, hiperVibracion 0.15s infinite alternate;
+}
+
+/* 1. Hace que el interior de la nave parezca plasma en movimiento continuo */
+@keyframes flujoEnergia {
+    0% { background-position: 0% 100%; }
+    100% { background-position: 0% 0%; }
+}
+
+/* 2. Hace que la nave "tiemble" ligeramente por la sobrecarga de poder */
+@keyframes hiperVibracion {
+    from { 
+        filter: drop-shadow(0 0 10px #00ffff) drop-shadow(0 0 20px #00bfff); 
+        transform: translateX(calc(-50% - 1px)) scale(1.05); 
+    }
+    to { 
+        filter: drop-shadow(0 0 25px #00ffff) drop-shadow(0 0 50px #ffffff); 
+        transform: translateX(calc(-50% + 1px)) scale(1.12); 
+    }
 }
 
 .ghost-trail {
     position: absolute;
     bottom: 50px;
     width: 55px;
-    height: 55px;
-    background-color: rgba(0, 255, 204, 0.25);
-    border-radius: 12px;
-    transform: translateX(-50%);
+    height: 60px; 
+    background-color: rgba(0, 255, 204, 0.35); 
+    clip-path: polygon(50% 0%, 100% 100%, 50% 80%, 0% 100%);
     pointer-events: none;
     z-index: 4;
-    animation: fadeTrail 0.2s ease-out forwards;
+    animation: fadeTrail 0.25s ease-out forwards;
 }
 
 @keyframes fadeTrail {
-    to { opacity: 0; transform: translateX(-50%) scale(0.75); }
+    0% { opacity: 0.8; transform: translateX(-50%) scale(1); }
+    100% { opacity: 0; transform: translateX(-50%) scale(0.85); }
 }
 
 /* =========================================
@@ -112,10 +153,18 @@ body {
         25% 10%, 30% 0%, 40% 5%
     );
     
+    /* Brillo rojo letal */
+    filter: drop-shadow(0 0 12px #ff3366);
     animation: girarPincho 4s linear infinite;
     transform: translateX(-50%);
-    box-shadow: 0 0 15px #ff3366;
     z-index: 4;
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+@keyframes girarPincho {
+    from { transform: translateX(-50%) rotate(0deg); }
+    to { transform: translateX(-50%) rotate(360deg); }
 }
 
 .moneda {
@@ -125,7 +174,7 @@ body {
     background-color: #ffd700;
     border-radius: 50%;
     transform: translateX(-50%);
-    box-shadow: 0 0 18px rgba(255, 215, 0, 0.6);
+    filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.8));
     border: 2px solid #fff;
     z-index: 3;
     animation: girar 0.8s linear infinite;
@@ -137,26 +186,40 @@ body {
     100% { transform: translateX(-50%) scaleX(1); }
 }
 
-/* NUEVA ANIMACIÓN: Squash and Stretch ULTRA al recolectar monedas */
 .moneda-recogida {
     animation: popMoneda 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
 }
 
 @keyframes popMoneda {
-    0% { transform: translateX(-50%) scale(1); opacity: 1; filter: brightness(1.5); }
+    0% { transform: translateX(-50%) scale(1); opacity: 1; filter: brightness(1.5) drop-shadow(0 0 20px #ffd700); }
     100% { transform: translateX(-50%) scale(2.2); opacity: 0; }
 }
 
 .escudo-item {
     position: absolute;
-    width: 40px;
-    height: 40px;
-    background-color: #00bfff;
-    border-radius: 8px;
-    transform: translateX(-50%) rotate(45deg);
-    box-shadow: 0 0 15px #00bfff;
-    border: 2px solid #fff;
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, #e0ffff, #00bfff);
+    
+    /* Forma perfecta de diamante */
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    transform: translateX(-50%);
     z-index: 3;
+    
+    /* Aura brillante exterior */
+    filter: drop-shadow(0 0 12px #00bfff);
+    animation: flotarDiamante 1.2s infinite alternate ease-in-out;
+}
+
+@keyframes flotarDiamante {
+    from { 
+        filter: drop-shadow(0 0 8px #00bfff) brightness(1); 
+        transform: translateX(-50%) translateY(0) scale(0.9); 
+    }
+    to { 
+        filter: drop-shadow(0 0 20px #00ffff) brightness(1.3); 
+        transform: translateX(-50%) translateY(-6px) scale(1.1); 
+    }
 }
 
 /* =========================================
@@ -168,7 +231,7 @@ body {
     height: 6px;
     border-radius: 50%;
     pointer-events: none;
-    z-index: 10;
+    z-index: 15;
     animation: estallar 0.45s cubic-bezier(0.1, 0.8, 0.25, 1) forwards;
 }
 
@@ -245,7 +308,7 @@ body {
 }
 
 /* =========================================
-   8. PANTALLA GAME OVER & RANKING LIMPIO
+   8. PANTALLA GAME OVER & RANKING
    ========================================= */
 .shake {
     animation: shake 0.35s cubic-bezier(.36,.07,.19,.97) both;
@@ -291,7 +354,6 @@ body {
     text-shadow: 0 0 15px #ff3366;
 }
 
-/* CORREGIDO: Contenedor del Ranking estructurado */
 #ranking-display {
     margin: 15px 0 25px 0;
     width: 85%;
@@ -310,7 +372,6 @@ body {
     text-shadow: 0 0 8px rgba(0, 255, 204, 0.3);
 }
 
-/* CORREGIDO: Estructura de filas alineada a la izquierda */
 .ranking-fila {
     display: flex;
     justify-content: space-between;
