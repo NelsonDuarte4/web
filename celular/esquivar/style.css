@@ -30,11 +30,26 @@ body {
     border: 2px solid #333;
     overflow: hidden;
     transition: background-color 0.8s ease; 
+    transform: translate(var(--cam-shake-x, 0), var(--cam-shake-y, 0));
+    will-change: transform;
 }
 
 /* =========================================
-   2. CARRILES Y LÍNEAS DE VELOCIDAD
+   2. FONDOS Y CARRILES (PARALLAX Y VELOCIDAD)
    ========================================= */
+#parallax-bg {
+    position: absolute;
+    top: -100%; 
+    left: 0; 
+    width: 100%; 
+    height: 200%;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.15) 2px, transparent 2px);
+    background-size: 60px 60px;
+    z-index: 1;
+    pointer-events: none;
+    will-change: transform;
+}
+
 .carril {
     position: absolute;
     top: 0;
@@ -51,73 +66,86 @@ body {
     width: 2px;
     background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.12));
     z-index: 1;
+    will-change: transform, top;
 }
 
 /* =========================================
-   3. JUGADOR (NAVE VANGUARDIA PULSANTE)
+   3. JUGADOR (CONTENEDOR Y CUERPO)
    ========================================= */
 #jugador {
     position: absolute;
     bottom: 50px;
     width: 55px;
     height: 60px;
-    background-color: #00ffcc;
-    
-    /* Forma de triángulo apuntando hacia arriba */
-    clip-path: polygon(50% 0%, 100% 100%, 50% 80%, 0% 100%);
     z-index: 5;
-    transition: left 0.15s cubic-bezier(0.25, 1, 0.5, 1), transform 0.15s ease-out;
+    transition: left 0.15s cubic-bezier(0.25, 1, 0.5, 1), transform 0.15s ease;
+    transform: translateX(-50%) rotate(0deg);
+}
 
-    /* Luz volumétrica que envuelve el triángulo */
-    filter: drop-shadow(0 0 8px rgba(0, 255, 204, 0.8)) drop-shadow(0 0 15px rgba(0, 255, 204, 0.4));
-    
-    /* Animación de motor encendido */
+.nave-cuerpo {
+    width: 100%;
+    height: 100%;
+    background-color: #00ffcc;
+    clip-path: polygon(50% 0%, 100% 100%, 50% 80%, 0% 100%);
+    filter: drop-shadow(0 0 8px rgba(0, 255, 204, 0.8));
     animation: latidoNave 1.5s infinite alternate ease-in-out;
 }
 
-@keyframes latidoNave {
-    from { filter: drop-shadow(0 0 5px rgba(0, 255, 204, 0.5)) brightness(1); }
-    to { filter: drop-shadow(0 0 15px rgba(0, 255, 204, 1)) brightness(1.2); }
+.moviendo-izq {
+    transform: translateX(-50%) rotate(-22deg);
 }
 
-/* =========================================
-   EFECTO DE ESCUDO MEJORADO (PLASMA ACTIVO)
-   ========================================= */
-#jugador.protegido {
-    /* Gradiente expansivo que simula el flujo de energía */
-    background: linear-gradient(0deg, #00ffff, #ffffff, #00bfff, #ffffff, #00ffff);
-    background-size: 100% 400%;
-    
-    /* El núcleo se vuelve más aerodinámico por la sobrecarga */
-    clip-path: polygon(50% 0%, 100% 100%, 50% 95%, 0% 100%);
-    
-    /* Triple capa de luz volumétrica (Núcleo blanco, aura cyan, destello azul) */
-    filter: drop-shadow(0 0 15px #00ffff) 
-            drop-shadow(0 0 30px #00bfff) 
-            drop-shadow(0 0 45px rgba(255, 255, 255, 0.6));
-    
-    /* Doble animación: Flujo de plasma (linear) y vibración de luz (alternate) */
-    animation: flujoEnergia 0.6s infinite linear, hiperVibracion 0.15s infinite alternate;
+.moviendo-der {
+    transform: translateX(-50%) rotate(22deg);
 }
 
-/* 1. Hace que el interior de la nave parezca plasma en movimiento continuo */
+/* --- ESTADO PROTEGIDO (ESCUDO) --- */
+#jugador.protegido .nave-cuerpo {
+    background: linear-gradient(to bottom, #00ffff, #ffffff, #00bfff, #ffffff, #00ffff) !important;
+    background-size: 100% 200% !important;
+    animation: latidoNave 1.5s infinite alternate ease-in-out, flujoEnergia 0.3s linear infinite !important;
+    clip-path: polygon(50% 0%, 100% 100%, 50% 95%, 0% 100%) !important;
+    filter: drop-shadow(0 0 15px #00ffff) drop-shadow(0 0 25px #00bfff) !important;
+}
+
+/* Burbuja exterior de energía */
+#jugador.protegido::after {
+    content: '';
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px dashed #00ffff;
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
+    animation: rotarBurbuja 2.5s infinite linear, pulsarBurbuja 0.8s infinite alternate ease-in-out;
+    pointer-events: none;
+    z-index: 6;
+}
+
+@keyframes rotarBurbuja {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes pulsarBurbuja {
+    from { opacity: 0.5; scale: 0.95; }
+    to { opacity: 1; scale: 1.05; }
+}
+
 @keyframes flujoEnergia {
-    0% { background-position: 0% 100%; }
-    100% { background-position: 0% 0%; }
+    from { background-position: 0% 0%; }
+    to { background-position: 0% 200%; }
 }
 
-/* 2. Hace que la nave "tiemble" ligeramente por la sobrecarga de poder */
-@keyframes hiperVibracion {
-    from { 
-        filter: drop-shadow(0 0 10px #00ffff) drop-shadow(0 0 20px #00bfff); 
-        transform: translateX(calc(-50% - 1px)) scale(1.05); 
-    }
-    to { 
-        filter: drop-shadow(0 0 25px #00ffff) drop-shadow(0 0 50px #ffffff); 
-        transform: translateX(calc(-50% + 1px)) scale(1.12); 
-    }
+@keyframes latidoNave {
+    0% { scale: 1; }
+    100% { scale: 1.08; }
 }
 
+/* EFECTO DE ESTELA */
 .ghost-trail {
     position: absolute;
     bottom: 50px;
@@ -143,8 +171,6 @@ body {
     width: 60px;
     height: 60px;
     background-color: #ff3366;
-    
-    /* 24 Puntas calculadas para simetría circular perfecta */
     clip-path: polygon(
         50% 0%, 60% 5%, 70% 0%, 75% 10%, 85% 10%, 88% 20%, 95% 25%, 
         95% 35%, 100% 45%, 95% 55%, 95% 65%, 88% 75%, 85% 80%, 75% 80%, 
@@ -152,14 +178,11 @@ body {
         12% 75%, 5% 65%, 5% 55%, 0% 45%, 5% 35%, 5% 25%, 12% 20%, 15% 10%, 
         25% 10%, 30% 0%, 40% 5%
     );
-    
-    /* Brillo rojo letal */
     filter: drop-shadow(0 0 12px #ff3366);
     animation: girarPincho 4s linear infinite;
     transform: translateX(-50%);
     z-index: 4;
-    will-change: transform;
-    backface-visibility: hidden;
+    will-change: transform, top;
 }
 
 @keyframes girarPincho {
@@ -178,6 +201,7 @@ body {
     border: 2px solid #fff;
     z-index: 3;
     animation: girar 0.8s linear infinite;
+    will-change: transform, top;
 }
 
 @keyframes girar {
@@ -200,15 +224,12 @@ body {
     width: 38px;
     height: 38px;
     background: linear-gradient(135deg, #e0ffff, #00bfff);
-    
-    /* Forma perfecta de diamante */
     clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
     transform: translateX(-50%);
     z-index: 3;
-    
-    /* Aura brillante exterior */
     filter: drop-shadow(0 0 12px #00bfff);
     animation: flotarDiamante 1.2s infinite alternate ease-in-out;
+    will-change: transform, top;
 }
 
 @keyframes flotarDiamante {
@@ -308,10 +329,10 @@ body {
 }
 
 /* =========================================
-   8. PANTALLA GAME OVER & RANKING
+   8. PANTALLA GAME OVER & EFECTOS IMPACTO
    ========================================= */
 .shake {
-    animation: shake 0.35s cubic-bezier(.36,.07,.19,.97) both;
+    animation: shake 0.35s cubic-bezier(.36,.07,.19,.97) both !important;
 }
 
 @keyframes shake {
@@ -354,7 +375,6 @@ body {
     text-shadow: 0 0 15px #ff3366;
 }
 
-/* DISEÑO IN-GAME DEL BOTÓN Y EL INPUT DEL RÉCORD */
 #nombre-input {
     width: 100%;
     padding: 11px;

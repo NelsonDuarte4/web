@@ -1,6 +1,7 @@
 // --- VARIABLES DEL JUEGO ---
 const jugador = document.getElementById('jugador');
 const gameContainer = document.getElementById('game-container');
+const parallaxBg = document.getElementById('parallax-bg'); 
 const flashLayer = document.getElementById('flash-layer');
 const fogOfWar = document.getElementById('fog-of-war');
 const scoreText = document.getElementById('score');
@@ -10,6 +11,14 @@ const comboBadge = document.getElementById('combo-badge');
 const gameOverScreen = document.getElementById('game-over-screen');
 const finalScoreText = document.getElementById('final-score');
 const rankingDisplay = document.getElementById('ranking-display');
+
+// CACHÉ DE DIMENSIONES (Optimización responsiva)
+let altoContenedor = gameContainer.offsetHeight;
+let anchoPantalla = gameContainer.offsetWidth;
+window.addEventListener('resize', () => {
+    altoContenedor = gameContainer.offsetHeight;
+    anchoPantalla = gameContainer.offsetWidth;
+});
 
 const posicionesCarril = [16.666, 50, 83.333]; 
 let carrilActual = 1; 
@@ -25,6 +34,7 @@ let listaLineas = [];
 let velocidadObjetos = 5; 
 let tiempoAparicion = 1100; 
 let bucleElementos;
+let parallaxY = 0; 
 
 let tieneEscudo = false; 
 let monedasConsecutivas = 0;
@@ -33,9 +43,62 @@ let nivelActual = 1;
 
 const coloresNiveles = ['#1a1a1a', '#0a192f', '#190a2f', '#2f0a19', '#0a2f24'];
 
-// --- AUDIO PROCEDURAL ---
+// --- AUDIO PROCEDURAL (SND FX & MÚSICA DE FONDO) ---
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx = new AudioContext();
+
+let loopMusica;
+let pasoMusica = 0;
+const notasMusicaBase = [110.00, 130.81, 146.83, 164.81, 196.00, 164.81, 146.83, 130.81];
+
+function iniciarMusicaFondo() {
+    if (loopMusica) clearInterval(loopMusica);
+    
+    let intervaloPaso = Math.max(140, 220 - (nivelActual * 12)); 
+    
+    loopMusica = setInterval(() => {
+        if (!juegoActivo) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        const oscBajo = audioCtx.createOscillator();
+        const oscArpegio = audioCtx.createOscillator();
+        const gainMusica = audioCtx.createGain();
+        
+        oscBajo.connect(gainMusica);
+        oscArpegio.connect(gainMusica);
+        gainMusica.connect(audioCtx.destination);
+        
+        oscBajo.type = 'triangle';
+        let freqBajo = notasMusicaBase[pasoMusica % notasMusicaBase.length];
+        
+        if (nivelActual >= 3 && pasoMusica % 4 === 0) freqBajo *= 2;
+        oscBajo.frequency.setValueAtTime(freqBajo, audioCtx.currentTime);
+        
+        if (pasoMusica % 2 === 0) {
+            oscArpegio.type = 'sine';
+            let freqArp = notasMusicaBase[(pasoMusica + 2) % notasMusicaBase.length] * 4; 
+            oscArpegio.frequency.setValueAtTime(freqArp, audioCtx.currentTime);
+            oscArpegio.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.08);
+        } else {
+            oscArpegio.frequency.setValueAtTime(0, audioCtx.currentTime);
+        }
+        
+        // VOLUMEN MAESTRO INTEGRADO AL 0.05
+        gainMusica.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gainMusica.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.18);
+        
+        oscBajo.start();
+        oscArpegio.start();
+        oscBajo.stop(audioCtx.currentTime + 0.19);
+        oscArpegio.stop(audioCtx.currentTime + 0.19);
+        
+        pasoMusica++;
+    }, intervaloPaso);
+}
+
+function detenerMusicaFondo() {
+    clearInterval(loopMusica);
+}
 
 function reproducirSonido(tipo) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -99,8 +162,7 @@ function reproducirSonido(tipo) {
 
 // --- EFECTOS VISUALES ---
 function crearParticulas(xPercentage, yPixels, color) {
-    const containerWidth = gameContainer.offsetWidth;
-    const xPixels = (xPercentage / 100) * containerWidth;
+    const xPixels = (xPercentage / 100) * anchoPantalla;
 
     for (let i = 0; i < 12; i++) {
         const particula = document.createElement('div');
@@ -123,32 +185,34 @@ function crearParticulas(xPercentage, yPixels, color) {
 function actualizarPosicionJugador() {
     const posicionAnterior = jugador.style.left;
     jugador.style.left = posicionesCarril[carrilActual] + "%";
-    
-    if (posicionAnterior && juegoActivo) {
-        const diff = parseFloat(jugador.style.left) - parseFloat(posicionAnterior);
-        if (diff !== 0) {
-            const angulo = diff > 0 ? 25 : -25; 
-            jugador.style.transform = `translateX(-50%) rotate(${angulo}deg)`;
-            setTimeout(() => {
-                if (juegoActivo) jugador.style.transform = "translateX(-50%) rotate(0deg)";
-            }, 150);
-        }
-    }
-    
+
     if (posicionAnterior && posicionAnterior !== jugador.style.left) {
+        const diff = parseFloat(jugador.style.left) - parseFloat(posicionAnterior);
+
+        jugador.classList.remove('moviendo-izq', 'moviendo-der');
+
+        if (diff > 0) {
+            jugador.classList.add('moviendo-der');
+        } else {
+            jugador.classList.add('moviendo-izq');
+        }
+
+        setTimeout(() => {
+            jugador.classList.remove('moviendo-izq', 'moviendo-der');
+        }, 150);
+
         const estela = document.createElement('div');
         estela.classList.add('ghost-trail');
         estela.style.left = posicionAnterior;
-        estela.style.transform = jugador.style.transform; 
+
         if (tieneEscudo) {
-            estela.style.backgroundColor = "rgba(0, 191, 255, 0.4)";
+            estela.style.backgroundColor = "rgba(0,191,255,0.4)";
         }
-    
+
         gameContainer.appendChild(estela);
-        setTimeout(() => estela.remove(), 250);
+        setTimeout(() => { estela.remove(); }, 250);
     }
 }
-actualizarPosicionJugador(); 
 
 function lanzarTextoFlotante(texto, color, yPos) {
     const divTxt = document.createElement('div');
@@ -167,7 +231,7 @@ function crearLineasVelocidad() {
         const linea = document.createElement('div');
         linea.classList.add('linea-velocidad');
         resetearLinea(linea);
-        linea.style.top = Math.random() * gameContainer.offsetHeight + "px";
+        linea.style.top = Math.random() * altoContenedor + "px";
         gameContainer.appendChild(linea);
         listaLineas.push(linea);
     }
@@ -179,12 +243,11 @@ function resetearLinea(linea) {
     linea.style.height = (Math.random() * 80 + 40) + "px";
 }
 
-// --- CONTROLES ---
-function manejarEntrada(clientX) {
+// --- CONTROLES MÓVIL Y DESKTOP ---
+function manejarEntradaTap(clientX) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     if (!juegoActivo) return;
 
-    const anchoPantalla = gameContainer.offsetWidth;
     const clickX = clientX - gameContainer.getBoundingClientRect().left;
 
     if (clickX < anchoPantalla / 2) {
@@ -198,12 +261,12 @@ function manejarEntrada(clientX) {
 gameContainer.addEventListener('touchstart', (e) => {
     if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return; 
     e.preventDefault(); 
-    manejarEntrada(e.touches[0].clientX);
+    manejarEntradaTap(e.touches[0].clientX);
 }, { passive: false });
 
 gameContainer.addEventListener('mousedown', (e) => {
     if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
-    manejarEntrada(e.clientX);
+    manejarEntradaTap(e.clientX);
 });
 
 window.addEventListener('keydown', (e) => {
@@ -214,7 +277,7 @@ window.addEventListener('keydown', (e) => {
     actualizarPosicionJugador();
 });
 
-// --- BUCLE PRINCIPAL Y GESTIÓN DE ELEMENTOS ---
+// --- BUCLE PRINCIPAL DE RENDERIZADO ---
 function crearElemento() {
     if (!juegoActivo) return;
 
@@ -258,8 +321,21 @@ function iniciarGenerador() {
 function juegoLoop() {
     if (!juegoActivo) return;
 
-    const altoContenedor = gameContainer.offsetHeight;
     const jugadorY = altoContenedor - 50 - 55; 
+
+    // Movimiento Parallax de fondo
+    parallaxY += velocidadObjetos * 0.4;
+    if (parallaxY >= 60) parallaxY = 0; 
+    if (parallaxBg) parallaxBg.style.transform = `translateY(${parallaxY}px)`;
+
+    // Efecto de vibración sutil según la velocidad actual
+    let vibracion = Math.max(0, (velocidadObjetos - 5) * 0.35); 
+    if (vibracion > 0) {
+        const offsetX = (Math.random() - 0.5) * vibracion;
+        const offsetY = (Math.random() - 0.5) * vibracion;
+        gameContainer.style.setProperty('--cam-shake-x', `${offsetX}px`);
+        gameContainer.style.setProperty('--cam-shake-y', `${offsetY}px`);
+    }
 
     for(let i=0; i<listaLineas.length; i++) {
         let linea = listaLineas[i];
@@ -276,6 +352,7 @@ function juegoLoop() {
         obj.y += velocidadObjetos;
         obj.elemento.style.top = obj.y + "px";
 
+        // Registro de Esquivas Cercanas (Valiente)
         if (obj.tipo === 'obstaculo' && !obj.nearMissRegistrado) {
             if (obj.y + 55 >= jugadorY && obj.y <= jugadorY + 55) {
                 if (Math.abs(obj.carril - carrilActual) === 1) {
@@ -289,13 +366,17 @@ function juegoLoop() {
             }
         }
 
+        // Colisiones directas
         if (obj.y + 50 >= jugadorY && obj.y <= jugadorY + 50) {
             if (obj.carril === carrilActual) {
                 
                 if (obj.tipo === 'obstaculo') {
                     if (tieneEscudo) {
                         tieneEscudo = false;
+                        
+                        // QUITAMOS ESCUDO CON SEGURIDAD
                         jugador.classList.remove('protegido');
+                        
                         reproducirSonido('escudo_break');
                         lanzarTextoFlotante('¡ESCUDO ROTO!', '#00bfff', jugadorY - 20);
                         
@@ -350,7 +431,10 @@ function juegoLoop() {
                 } 
                 else if (obj.tipo === 'escudo') {
                     tieneEscudo = true;
+                    
+                    // COLOCAMOS ESCUDO CON SEGURIDAD
                     jugador.classList.add('protegido');
+                    
                     reproducirSonido('escudo_up');
                     lanzarTextoFlotante('ESCUDO ACTIVO', '#e0ffff', jugadorY - 20);
                     
@@ -367,6 +451,7 @@ function juegoLoop() {
             }
         }
 
+        // Elementos que salen de la pantalla
         if (obj.y > altoContenedor) {
             obj.elemento.remove();
             
@@ -406,6 +491,7 @@ function revisarCambioNivel() {
         }
         
         reproducirSonido('nivel');
+        iniciarMusicaFondo();
         
         const colorIndex = (nivelActual - 1) % coloresNiveles.length;
         gameContainer.style.backgroundColor = coloresNiveles[colorIndex];
@@ -446,6 +532,10 @@ function mostrarRanking() {
 function gameOver() {
     juegoActivo = false;
     clearInterval(bucleElementos);
+    detenerMusicaFondo(); 
+    
+    gameContainer.style.setProperty('--cam-shake-x', `0px`);
+    gameContainer.style.setProperty('--cam-shake-y', `0px`);
     
     reproducirSonido('choque');
     gameContainer.classList.add('shake');
@@ -455,8 +545,6 @@ function gameOver() {
         record = puntos;
         localStorage.setItem('record_esquiva', record);
         highscoreText.innerText = record;
-        
-        // Muestra el cuadro integrado nativo para guardar
         document.getElementById('registro-record').style.display = 'block';
     } else {
         document.getElementById('registro-record').style.display = 'none';
@@ -492,7 +580,6 @@ function guardarPuntaje() {
 }
 
 function reiniciarJuego() {
-    // Limpia y restablece la caja de texto integrada
     document.getElementById('registro-record').style.display = 'none';
     document.getElementById('nombre-input').value = "";
 
@@ -504,6 +591,8 @@ function reiniciarJuego() {
     monedasConsecutivas = 0;
     multiplicadorCombo = 1;
     tieneEscudo = false;
+    parallaxY = 0;
+    pasoMusica = 0;
     
     scoreText.innerText = puntos;
     levelText.innerText = nivelActual;
@@ -511,8 +600,7 @@ function reiniciarJuego() {
     velocidadObjetos = 5;
     tiempoAparicion = 1100;
     
-    jugador.className = ""; 
-    jugador.style.transform = "translateX(-50%) rotate(0deg)"; 
+    jugador.classList.remove('protegido'); 
     gameContainer.style.backgroundColor = coloresNiveles[0];
     if (fogOfWar) fogOfWar.style.background = `linear-gradient(to bottom, ${coloresNiveles[0]} 20%, transparent)`;
     
@@ -521,7 +609,9 @@ function reiniciarJuego() {
     gameOverScreen.style.display = "none";
     gameContainer.classList.remove('shake');
     juegoActivo = true;
+    
     iniciarGenerador();
+    iniciarMusicaFondo(); 
     juegoLoop();
     mostrarRanking();
 }
@@ -531,7 +621,9 @@ window.guardarPuntaje = guardarPuntaje;
 window.reiniciarJuego = reiniciarJuego;
 
 // --- DISPARADORES DE INICIO ---
+actualizarPosicionJugador(); // Configurar centrado inicial
 crearLineasVelocidad();
 iniciarGenerador();
+iniciarMusicaFondo(); 
 juegoLoop();
 mostrarRanking();
